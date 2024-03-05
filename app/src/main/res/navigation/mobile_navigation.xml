@@ -3,23 +3,28 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_home">
+    app:startDestination="@id/navigation_photos">
 
     <fragment
-        android:id="@+id/navigation_home"
-        android:name="android21ktpm3.group07.androidgallery.ui.home.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        android:id="@+id/navigation_library"
+        android:name="android21ktpm3.group07.androidgallery.ui.library.LibraryFragment"
+        android:label="@string/title_library"
+        tools:layout="@layout/fragment_library" />
 
     <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="android21ktpm3.group07.androidgallery.ui.dashboard.DashboardFragment"
-        android:label="@string/title_dashboard"
-        tools:layout="@layout/fragment_dashboard" />
+        android:id="@+id/navigation_search"
+        android:name="android21ktpm3.group07.androidgallery.ui.search.SearchFragment"
+        android:label="@string/title_search"
+        tools:layout="@layout/fragment_search" />
 
     <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="android21ktpm3.group07.androidgallery.ui.notifications.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
+        android:id="@+id/navigation_photos"
+        android:name="android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment"
+        android:label="@string/title_photos"
+        tools:layout="@layout/fragment_photos" />
+    <fragment
+        android:id="@+id/navigation_memories"
+        android:name="android21ktpm3.group07.androidgallery.ui.memories.MemoriesFragment"
+        android:label="@string/title_memories"
+        tools:layout="@layout/fragment_memories" />
 </navigation>

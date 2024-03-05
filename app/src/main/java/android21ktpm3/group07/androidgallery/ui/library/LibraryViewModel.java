@@ -1,16 +1,16 @@
-package android21ktpm3.group07.androidgallery.ui.notifications;
+package android21ktpm3.group07.androidgallery.ui.library;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-public class NotificationsViewModel extends ViewModel {
+public class LibraryViewModel extends ViewModel {
 
     private final MutableLiveData<String> mText;
 
-    public NotificationsViewModel() {
+    public LibraryViewModel() {
         mText = new MutableLiveData<>();
-        mText.setValue("This is notifications fragment");
+        mText.setValue("This is library fragment");
     }
 
     public LiveData<String> getText() {
