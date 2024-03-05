@@ -30,4 +30,19 @@
         app:navGraph="@navigation/mobile_navigation"
         tools:layout="@layout/fragment_photos" />
 
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/materialToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/md_theme_background"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="?attr/actionBarTheme"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:menu="@menu/top_toolbar_menu"
+        app:title="@string/app_name"
+        app:titleTextAppearance="@style/TextAppearance.AppCompat.Display1"
+        app:titleTextColor="@color/md_theme_inversePrimary" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/create_new"
+        android:title="@string/title_create"
+        android:contentDescription="@string/content_description_create"
+        android:icon="@drawable/add_fill1_wght500_grad200_opsz24"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/share"
+        android:title="@string/title_share"
+        android:contentDescription="@string/content_description_share"
+        android:icon="@drawable/group_fill1_wght500_grad200_opsz24"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/account"
+        android:title="@string/title_account"
+        android:contentDescription="@string/content_description_account"
+        android:icon="@drawable/account_circle_fill1_wght500_grad200_opsz24"
+        app:showAsAction="ifRoom" />
+</menu>
