@@ -1,14 +1,26 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Adapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.helper.widget.Flow;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
+
+import com.google.android.flexbox.AlignContent;
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexWrap;
+import com.google.android.flexbox.FlexboxLayoutManager;
+import com.google.android.flexbox.JustifyContent;
 
 import java.util.Date;
 
@@ -16,13 +28,34 @@ import android21ktpm3.group07.androidgallery.R;
 
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
     final private String[] dates = {"1", "2","3","4"};
+    final private int[][] images = {
+            {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05},
+            { R.drawable.avatar01,  R.drawable.avatar09, R.drawable.avatar06, R.drawable.avatar07,  R.drawable.avatar08},
+            {R.drawable.avatar01, R.drawable.avatar04,  R.drawable.avatar05},
+            {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05,
+                    R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,
+                    R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,
+                    R.drawable.avatar05, R.drawable.avatar05, },
+    };
     static class ViewHolder extends RecyclerView.ViewHolder{
         TextView date;
+        RecyclerView innerRecyclerView;
+        RecyclerView.Adapter innerAdapter;
+
 //        Flow imageFlow;
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             date = itemView.findViewById(R.id.date_text);
-//            imageFlow = itemView.findViewById(R.id.images_flow);
+            innerRecyclerView = itemView.findViewById(R.id.image_by_date_recycler_view);
+            FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(itemView.getContext());
+            layoutManager.setFlexDirection(FlexDirection.ROW);
+
+
+
+//            LinearLayoutManager layoutManager = new LinearLayoutManager(itemView.getContext(), LinearLayoutManager.HORIZONTAL, false);
+//            GridLayoutManager layoutManager = new GridLayoutManager(itemView.getContext(), 3, GridLayoutManager.VERTICAL, false);
+
+            innerRecyclerView.setLayoutManager(layoutManager);
         }
     }
 
@@ -35,7 +68,12 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        // TODO: Refactor later, this is a mess :v
         holder.date.setText(dates[position]);
+        holder.innerAdapter = new PhotosGroupRecyclerAdapter(images[position]);
+        holder.innerRecyclerView.setAdapter(holder.innerAdapter);
+
+        // TODO: Feed image data programmatically into this ViewHolder later
     }
 
     @Override
