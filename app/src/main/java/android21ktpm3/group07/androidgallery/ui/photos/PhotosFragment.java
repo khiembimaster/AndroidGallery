@@ -6,6 +6,8 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,7 +18,8 @@ import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
 
 public class PhotosFragment extends Fragment {
     private FragmentPhotosBinding binding;
-
+    private RecyclerView.LayoutManager layoutManager;
+    private RecyclerView.Adapter adapter;
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         PhotosViewModel photosViewModel =
@@ -25,8 +28,10 @@ public class PhotosFragment extends Fragment {
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        final TextView textView = binding.textPhotos;
-        photosViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
+        layoutManager = new LinearLayoutManager(getActivity());
+        binding.recyclerView.setLayoutManager(layoutManager);
+        binding.recyclerView.setAdapter(new PhotosRecyclerAdapter());
+
         return root;
     }
 
