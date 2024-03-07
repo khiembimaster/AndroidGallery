@@ -1,28 +1,15 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.constraintlayout.helper.widget.Flow;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
-import com.google.android.flexbox.AlignContent;
 import com.google.android.flexbox.FlexDirection;
-import com.google.android.flexbox.FlexWrap;
 import com.google.android.flexbox.FlexboxLayoutManager;
-import com.google.android.flexbox.JustifyContent;
-
-import java.util.Date;
 
 import android21ktpm3.group07.androidgallery.R;
 
@@ -70,7 +57,7 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         // TODO: Refactor later, this is a mess :v
         holder.date.setText(dates[position]);
-        holder.innerAdapter = new PhotosGroupRecyclerAdapter(images[position]);
+        holder.innerAdapter = new PhotoAdapter(images[position]);
         holder.innerRecyclerView.setAdapter(holder.innerAdapter);
 
         // TODO: Feed image data programmatically into this ViewHolder later
