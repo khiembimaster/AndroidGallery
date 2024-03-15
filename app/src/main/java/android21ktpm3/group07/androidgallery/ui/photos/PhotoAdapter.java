@@ -1,5 +1,6 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -85,14 +86,19 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         holder.imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Snackbar.make(v, "A Click detected on item ", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .show();
-                if(holder.isSelected) {
-                    holder.selectedIcon.setVisibility(View.GONE);
-                    v.startAnimation(holder.scaleUp);
-                    holder.isSelected = false;
-                }
+//                Snackbar.make(v, "A Click detected on item ", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null)
+//                        .show();
+//                if(holder.isSelected) {
+//                    holder.selectedIcon.setVisibility(View.GONE);
+//                    v.startAnimation(holder.scaleUp);
+//                    holder.isSelected = false;
+//                }
+                Intent intent = new Intent(v.getContext(), ImageActivity.class);
+
+                intent.putExtra("selected_image", imageSrcTestData[position]); // Truyền ID của ảnh được chọn
+
+                v.getContext().startActivity(intent);
             }
         });
     }

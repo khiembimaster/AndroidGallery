@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.flexbox.FlexDirection;
 import com.google.android.flexbox.FlexboxLayoutManager;
 
+import java.util.ArrayList;
+
 import android21ktpm3.group07.androidgallery.R;
 
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
@@ -19,11 +21,10 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
             {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05},
             { R.drawable.avatar01,  R.drawable.avatar09, R.drawable.avatar06, R.drawable.avatar07,  R.drawable.avatar08},
             {R.drawable.avatar01, R.drawable.avatar04,  R.drawable.avatar05},
-            {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05,
-                    R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,
-                    R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,
-                    R.drawable.avatar05, R.drawable.avatar05, },
+            {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, },
     };
+    private final ArrayList<Image> imgList = new ArrayList<>();
+
     static class ViewHolder extends RecyclerView.ViewHolder{
         TextView date;
         RecyclerView innerRecyclerView;
