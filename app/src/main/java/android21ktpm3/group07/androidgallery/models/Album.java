@@ -14,9 +14,11 @@ public class Album {
 
     public Album() {}
 
-    public Album(String name, String path, long lastModifiedDate) {
+    public Album(String name, String path, String coverPhotoPath, long lastModifiedDate) {
         this.name = name;
         this.path = path;
+        this.size = 1;
+        this.coverPhotoPath = coverPhotoPath;
         this.lastModifiedDate = lastModifiedDate;
     }
 

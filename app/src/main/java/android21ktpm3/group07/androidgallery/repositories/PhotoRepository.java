@@ -11,9 +11,11 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.stream.Collectors;
 
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
@@ -57,16 +59,17 @@ public class PhotoRepository {
                     Album album = albumsMap.get(folder.getPath());
                     if (album != null) {
                         album.setSize(album.getSize() + 1);
-                        if (album.getCoverPhotoPath() == null && album.getLastModifiedDate() == fileDate) {
+                        if (album.getLastModifiedDate() < fileDate) {
+                            album.setLastModifiedDate(fileDate);
                             album.setCoverPhotoPath(filePath);
                         }
                     } else {
-                        Album newAlbum = new Album(folder.getName(), folder.getPath(), folder.lastModified());
-                        newAlbum.setSize(1);
-                        if (newAlbum.getLastModifiedDate() == fileDate) {
-                            newAlbum.setCoverPhotoPath(filePath);
-                        }
-                        albumsMap.put(folder.getPath(), newAlbum);
+                        albumsMap.put(folder.getPath(), new Album(
+                                folder.getName(),
+                                folder.getPath(),
+                                filePath,
+                                fileDate
+                        ));
                     }
                 } while (cursor.moveToNext());
             }
@@ -74,7 +77,9 @@ public class PhotoRepository {
             Log.e("PhotoRepository", e.toString());
         }
 
-        return new ArrayList<>(albumsMap.values());
+        return albumsMap.values().stream()
+                .sorted(Comparator.comparingLong(Album::getLastModifiedDate).reversed())
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public ArrayList<Photo> GetAllPhotos() {

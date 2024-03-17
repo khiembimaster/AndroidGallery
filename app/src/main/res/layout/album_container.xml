@@ -31,7 +31,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:text="@string/album_item_quantifier"
         app:layout_constraintTop_toBottomOf="@+id/tv_albumName"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

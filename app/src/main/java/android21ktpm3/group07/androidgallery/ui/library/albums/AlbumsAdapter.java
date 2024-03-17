@@ -63,8 +63,9 @@ public class AlbumsAdapter extends RecyclerView.Adapter<AlbumsAdapter.ViewHolder
                 .into(holder.imageView);
 
         holder.tv_albumName.setText(album.getName());
+        // TODO: use string resource instead of hard code
         holder.tv_itemsCount.setText(
-                String.format("%d %s", album.getSize(), holder.tv_itemsCount.getText()));
+                String.format("%d %s", album.getSize(), "items"));
     }
 
     @Override
