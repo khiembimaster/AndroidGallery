@@ -2,17 +2,28 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,26 +50,54 @@ public class ImageActivity extends AppCompatActivity {
     ImageButton detail;
 
     ImageButton delete;
+    Image selectedImage;
 
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)  {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+
+                Intent intent = new Intent(this, PhotoAdapter.class);
+                intent.putExtra("updated_comment",selectedImage.getComment());
+                intent.putExtra("selected_image", selectedImage);
+
+            setResult(RESULT_OK, intent);
+                System.out.println(intent);
+                finish();
+
+
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onStop() {
+
+        super.onStop();
+        System.out.println("stop");
+    }
+    @Override
+    protected void onDestroy() {
+
+        super.onDestroy();
+        System.out.println("destroy");
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.single_image);
-        int imageResourceId = getIntent().getIntExtra("selected_image", 0);
+        selectedImage = getIntent().getParcelableExtra("selected_image");
 
 
 
         display = findViewById(R.id.image_item);
-      //  DetailFrame = findViewById(R.id.content_frame);
-        ImageFrame = findViewById(R.id.image_frame);
 
-        ImageFrame.setVisibility(View.VISIBLE);
-       // DetailFrame.setVisibility(View.GONE);
 
-        // Hiển thị ảnh từ đối tượng Image lên ImageView
-        if (imageResourceId != 0) {
-            display.setImageResource(imageResourceId);
+        if (selectedImage != null) {
+            display.setImageResource(selectedImage.getImage());
+            System.out.println(selectedImage.getComment());
         }
 
 
@@ -87,20 +126,13 @@ public class ImageActivity extends AppCompatActivity {
         });
 
 
-//        detail.setOnClickListener(new View.OnClickListener() {
-////            @Override
-////            public void onClick(View view) {
-////
-////                DetailFrame.setVisibility(View.VISIBLE);
-////
-////                DetailFragment newFragment = new DetailFragment();
-////                getSupportFragmentManager().beginTransaction()
-////                        .replace(R.id.content_frame, newFragment)
-////
-////                        .addToBackStack(null) // Để có thể quay lại khi ấn nút back
-////                        .commit();
-////            }
-//        });
+        detail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                showDetailDialog();
+            }
+        });
 
 
         like.setOnClickListener(new View.OnClickListener() {
@@ -112,6 +144,17 @@ public class ImageActivity extends AppCompatActivity {
 
 
     }
+    private void showDetailDialog() {
+        // Khởi tạo CustomDialog mới
+        detailActivity dialog = new detailActivity(this);
+
+        // Đặt dữ liệu cho Dialog
+        dialog.setData(selectedImage);
+
+        // Hiển thị Dialog
+        dialog.show();
+    }
+
 
     public String saveToInternalStorage(Bitmap bitmapImage){
         ContextWrapper cw = new ContextWrapper(getApplicationContext());

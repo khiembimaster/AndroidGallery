@@ -1,5 +1,7 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import android.content.Context;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,16 +16,47 @@ import com.google.android.flexbox.FlexboxLayoutManager;
 import java.util.ArrayList;
 
 import android21ktpm3.group07.androidgallery.R;
+import android21ktpm3.group07.androidgallery.Utilities;
+
 
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
-    final private String[] dates = {"1", "2","3","4"};
+    final private String[] dates;
     final private int[][] images = {
             {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05},
             { R.drawable.avatar01,  R.drawable.avatar09, R.drawable.avatar06, R.drawable.avatar07,  R.drawable.avatar08},
             {R.drawable.avatar01, R.drawable.avatar04,  R.drawable.avatar05},
             {R.drawable.avatar01, R.drawable.avatar02,  R.drawable.avatar03,  R.drawable.avatar04,  R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05,R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, R.drawable.avatar05, },
     };
-    private final ArrayList<Image> imgList = new ArrayList<>();
+    private ArrayList<Image> imgList = new ArrayList<>();
+    private final ArrayList<ArrayList<Image>> groupedImages;
+    private Context mContext;
+    private PhotosFragment photosFragment;
+
+    public PhotosRecyclerAdapter(Context context, PhotosFragment photosFragment) {
+        this.mContext = context;
+        this.photosFragment = photosFragment;
+        // Gọi phương thức createImage trong constructor và truyền context
+        for (int i = 0; i < images.length; i++) {
+            for (int j = 0; j < images[i].length; j++) {
+                Utilities.createImage(context, images[i][j], imgList);
+
+            }
+        }
+        Pair<ArrayList<String>, ArrayList<ArrayList<Image>>> result = Utilities.groupImagesByDate(context, imgList);
+
+        // Gán các phần tử trong kết quả trả về vào các biến dates và groupedImages
+        dates = result.first.toArray(new String[0]);
+        groupedImages = result.second;
+        System.out.println("khoi tao toan mang");
+    }
+
+
+
+
+
+
+
+
 
     static class ViewHolder extends RecyclerView.ViewHolder{
         TextView date;
@@ -56,9 +89,11 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+
+        Image image = imgList.get(position);
         // TODO: Refactor later, this is a mess :v
         holder.date.setText(dates[position]);
-        holder.innerAdapter = new PhotoAdapter(images[position]);
+        holder.innerAdapter = new PhotoAdapter(mContext,photosFragment,groupedImages.get(position));
         holder.innerRecyclerView.setAdapter(holder.innerAdapter);
 
         // TODO: Feed image data programmatically into this ViewHolder later
@@ -68,4 +103,16 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
     public int getItemCount() {
         return dates.length;
     }
+
+    public ArrayList<Image> getImgList() {
+        return imgList;
+    }
+    public void updateImgList(ArrayList<Image> newImgList) {
+        imgList = newImgList;
+        notifyDataSetChanged(); // Thông báo cho adapter biết rằng dữ liệu đã thay đổi
+    }
+
+
+
+
 }

@@ -1,5 +1,10 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import static android.app.Activity.RESULT_OK;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,20 +13,54 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.flexbox.FlexboxLayoutManager;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.util.ArrayList;
+
 import android21ktpm3.group07.androidgallery.R;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> {
-    private int[] imageSrcTestData;
+    private ArrayList<Image> imageSrcTestData;
+    private Context context;
+    private PhotosFragment fragment;
 
-    public PhotoAdapter(int[] innerData) {
+
+    public static final int REQUEST_IMAGE_ACTIVITY = 1;
+   // private OnActivityResultListener onActivityResultListener;
+
+    public PhotoAdapter(Context context,PhotosFragment fragment, ArrayList<Image> innerData) {
+        this.context = context;
+        this.fragment = fragment;
+
         this.imageSrcTestData = innerData;
     }
+    public PhotoAdapter(Context context,PhotosFragment fragment) {
+        this.context = context;
+        this.fragment = fragment;
+
+    }
+    public PhotoAdapter(Context context, ArrayList<Image> innerData) {
+        this.context = context;
+
+        this.imageSrcTestData = innerData;
+    }
+
+//    public PhotoAdapter(Context context,ArrayList<Image> innerData, OnActivityResultListener listener) {
+//        this.context = context;
+//        this.imageSrcTestData = innerData; // Gọi constructor mà không có listener
+//        this.onActivityResultListener = listener;
+//    }
+
+//    public interface OnActivityResultListener {
+//        void onActivityResult(int requestCode, int resultCode, Intent data);
+//    }
+
     static class ViewHolder extends RecyclerView.ViewHolder{
         ImageView imageView;
         ImageView selectedIcon;
@@ -50,10 +89,13 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         return new ViewHolder(v);
     }
 
+
+
+
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         // TODO: change this later to use other type of resources
-        holder.imageView.setImageResource(imageSrcTestData[position]);
+        holder.imageView.setImageResource(imageSrcTestData.get(position).getImage());
         ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
 
         if (lp instanceof FlexboxLayoutManager.LayoutParams ) {
@@ -94,17 +136,34 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 //                    v.startAnimation(holder.scaleUp);
 //                    holder.isSelected = false;
 //                }
-                Intent intent = new Intent(v.getContext(), ImageActivity.class);
+                Intent intent = new Intent(context, ImageActivity.class);
 
-                intent.putExtra("selected_image", imageSrcTestData[position]); // Truyền ID của ảnh được chọn
+                intent.putExtra("selected_image", imageSrcTestData.get(position));
+                fragment.startImageActivity(intent);
 
-                v.getContext().startActivity(intent);
-            }
+                           }
         });
+
     }
 
     @Override
     public int getItemCount() {
-        return imageSrcTestData.length;
+        return imageSrcTestData.size();
     }
+
+
+//    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        System.out.println("check");
+//
+//        if (resultCode == RESULT_OK && requestCode == REQUEST_IMAGE_ACTIVITY) {
+//            if (data != null && data.hasExtra("updated_comment")) {
+//                String updatedComment = data.getStringExtra("updated_comment");
+//                notifyDataSetChanged(); // Notify the adapter that the data has changed
+//            }
+//        }
+//    }
+
+
+
+
 }
