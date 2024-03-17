@@ -1,5 +1,7 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import android.content.Context;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,28 +12,37 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.flexbox.FlexboxLayoutManager;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.util.List;
+
 import android21ktpm3.group07.androidgallery.R;
+import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> {
-    private int[] imageSrcTestData;
+    private final Context context;
+    private final List<Photo> photos;
 
-    public PhotoAdapter(int[] innerData) {
-        this.imageSrcTestData = innerData;
+    public PhotoAdapter(Context context, List<Photo> photos) {
+        this.context = context;
+        this.photos = photos;
     }
-    static class ViewHolder extends RecyclerView.ViewHolder{
-        ImageView imageView;
-        ImageView selectedIcon;
-        Animation scaleDown;
 
-        Animation scaleUp;
+    public static class ViewHolder extends RecyclerView.ViewHolder{
+        private final ImageView imageView;
+        private final ImageView selectedIcon;
+        private final Animation scaleDown;
+        private final Animation scaleUp;
         Boolean isSelected = false;
+
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+
             imageView = itemView.findViewById(R.id.imageView);
             selectedIcon = itemView.findViewById(R.id.selectedIcon);
+
             scaleDown = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_down);
             scaleUp = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_up);
             scaleDown.setFillEnabled(true);
@@ -39,22 +50,29 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
             scaleUp.setFillEnabled(true);
             scaleUp.setFillAfter(true);
         }
-
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.image_container, parent, false);
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View v = inflater.inflate(R.layout.image_container, parent, false);
+
         return new ViewHolder(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         // TODO: change this later to use other type of resources
-        holder.imageView.setImageResource(imageSrcTestData[position]);
-        ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
+        Photo photo = photos.get(position);
 
+        Glide.with(context)
+                .load(photo.getPath())
+                .sizeMultiplier(0.5f)
+                .centerCrop()
+                .into(holder.imageView);
+
+        ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
         if (lp instanceof FlexboxLayoutManager.LayoutParams ) {
             FlexboxLayoutManager.LayoutParams flexboxLp = (FlexboxLayoutManager.LayoutParams) lp;
             // TODO: Config item attributes here
@@ -66,39 +84,34 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 
         // TODO: extend onLongClick to turn into selection mode that allows to choose more image
         //  and replace bottom navbar with a bottom sheet that contains images management features(remove, create collection);
-        holder.imageView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                Snackbar.make(v, "A Long Click detected on item ", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .show();
-                if(!holder.isSelected) {
-                    v.startAnimation(holder.scaleDown);
-                    holder.selectedIcon.setVisibility(View.VISIBLE);
-                    holder.isSelected = true;
-                }
-
-                return true;
+        holder.imageView.setOnLongClickListener(view -> {
+            Snackbar.make(view, "A Long Click detected on item ", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null)
+                    .show();
+            if(!holder.isSelected) {
+                view.startAnimation(holder.scaleDown);
+                holder.selectedIcon.setVisibility(View.VISIBLE);
+                holder.isSelected = true;
             }
+
+            return true;
         });
+
         // TODO: extend onClick to open image in detail or editor tool
-        holder.imageView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Snackbar.make(v, "A Click detected on item ", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .show();
-                if(holder.isSelected) {
-                    holder.selectedIcon.setVisibility(View.GONE);
-                    v.startAnimation(holder.scaleUp);
-                    holder.isSelected = false;
-                }
+        holder.imageView.setOnClickListener(view -> {
+            Snackbar.make(view, "A Click detected on item ", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null)
+                    .show();
+            if(holder.isSelected) {
+                holder.selectedIcon.setVisibility(View.GONE);
+                view.startAnimation(holder.scaleUp);
+                holder.isSelected = false;
             }
         });
     }
 
     @Override
     public int getItemCount() {
-        return imageSrcTestData.length;
+        return photos.size();
     }
 }

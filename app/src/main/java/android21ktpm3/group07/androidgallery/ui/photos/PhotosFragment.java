@@ -1,36 +1,44 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
+import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotosFragment extends Fragment {
     private FragmentPhotosBinding binding;
-    private RecyclerView.LayoutManager layoutManager;
-    private RecyclerView.Adapter adapter;
+    private PhotosViewModel photosViewModel;
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        PhotosViewModel photosViewModel =
-                new ViewModelProvider(this).get(PhotosViewModel.class);
+        photosViewModel = new ViewModelProvider(this).get(PhotosViewModel.class);
+        photosViewModel.setPhotoRepository(new PhotoRepository(this.getActivity()));
+        photosViewModel.setUpdateRunnable(UpdateRecyclerView);
+        photosViewModel.loadPhotos();
+
 
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        layoutManager = new LinearLayoutManager(getActivity());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         binding.recyclerView.setLayoutManager(layoutManager);
-        binding.recyclerView.setAdapter(new PhotosRecyclerAdapter());
 
         return root;
     }
@@ -41,4 +49,13 @@ public class PhotosFragment extends Fragment {
         binding = null;
     }
 
+    public Runnable UpdateRecyclerView = new Runnable() {
+        @Override
+        public void run() {
+            binding.recyclerView.setAdapter(new PhotosRecyclerAdapter(
+                    getActivity(),
+                    photosViewModel.getPhotosGroupByDate()
+            ));
+        }
+    };
 }
