@@ -1,25 +1,16 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
-import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotosFragment extends Fragment {
@@ -30,7 +21,7 @@ public class PhotosFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
         photosViewModel = new ViewModelProvider(this).get(PhotosViewModel.class);
         photosViewModel.setPhotoRepository(new PhotoRepository(this.getActivity()));
-        photosViewModel.setUpdateRunnable(UpdateRecyclerView);
+        photosViewModel.setUpdateTask(UpdateRecyclerView);
         photosViewModel.loadPhotos();
 
 

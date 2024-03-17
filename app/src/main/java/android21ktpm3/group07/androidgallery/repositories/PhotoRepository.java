@@ -7,11 +7,15 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
+import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoRepository {
@@ -21,35 +25,56 @@ public class PhotoRepository {
         this.context = context;
     }
 
-    public LinkedHashSet<String> GetFolders() {
+    public ArrayList<Album> GetAlbums() {
         Uri collection;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
         } else {
             collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         }
-        String[] projection = {
-                MediaStore.Images.ImageColumns.DATA,
+        String[] projection = new String[] {
+                MediaStore.Images.Media.DATA,
+                MediaStore.Images.Media.DATE_MODIFIED,
         };
-        String sort = String.format("%s DESC", MediaStore.Images.ImageColumns._ID);
 
-        LinkedHashSet<String> paths = new LinkedHashSet<>();
+        HashMap<String, Album> albumsMap = new LinkedHashMap<>();
 
-        try (Cursor cursor = context.getContentResolver().query(collection, projection, null, null, sort)) {
+        try (Cursor cursor = context.getContentResolver().query(
+                collection,
+                projection,
+                null,
+                null,
+                null)) {
             if (cursor.moveToFirst()) {
-                int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+                int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+                int DateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
                 do {
-                    String path = cursor.getString(PathColumnIdx);
-                    if (path == null) continue;
+                    String filePath = cursor.getString(PathColumnIdx);
+                    long fileDate = cursor.getLong(DateColumnIdx) * 1000;
 
-                    paths.add(Paths.get(path).getParent().toString());
+                    File folder = new File(filePath).getParentFile();
+
+                    Album album = albumsMap.get(folder.getPath());
+                    if (album != null) {
+                        album.setSize(album.getSize() + 1);
+                        if (album.getCoverPhotoPath() == null && album.getLastModifiedDate() == fileDate) {
+                            album.setCoverPhotoPath(filePath);
+                        }
+                    } else {
+                        Album newAlbum = new Album(folder.getName(), folder.getPath(), folder.lastModified());
+                        newAlbum.setSize(1);
+                        if (newAlbum.getLastModifiedDate() == fileDate) {
+                            newAlbum.setCoverPhotoPath(filePath);
+                        }
+                        albumsMap.put(folder.getPath(), newAlbum);
+                    }
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
             Log.e("PhotoRepository", e.toString());
         }
 
-        return paths;
+        return new ArrayList<>(albumsMap.values());
     }
 
     public ArrayList<Photo> GetAllPhotos() {

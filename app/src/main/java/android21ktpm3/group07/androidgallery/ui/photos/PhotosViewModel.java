@@ -2,20 +2,14 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.core.util.Pair;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.chrono.ChronoLocalDate;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -24,37 +18,30 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotosViewModel extends ViewModel {
-    private final MutableLiveData<String> mText;
     private List<Photo> photos;
     private PhotoRepository photoRepository;
     ExecutorService executor = Executors.newSingleThreadExecutor();
     Handler handler = new Handler(Looper.getMainLooper());
 
-    private Runnable updateRunnable;
+    private Runnable updateTask;
 
-    // TODO: Switch to DI
+    // TODO: Switch to DI, create factory
     public PhotosViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is photos fragment");
     }
 
     public void setPhotoRepository(PhotoRepository photoRepository) {
         this.photoRepository = photoRepository;
     }
 
-    public void setUpdateRunnable(Runnable updateRunnable) {
-        this.updateRunnable = updateRunnable;
-    }
-
-    public LiveData<String> getText() {
-        return mText;
+    public void setUpdateTask(Runnable updateTask) {
+        this.updateTask = updateTask;
     }
 
     public void loadPhotos() {
         executor.execute(() -> {
             photos = photoRepository.GetAllPhotos();
 
-            handler.post(updateRunnable);
+            handler.post(updateTask);
         });
     }
 

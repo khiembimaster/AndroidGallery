@@ -7,25 +7,26 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentLibraryBinding;
+import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import android21ktpm3.group07.androidgallery.ui.library.albums.AlbumsViewModel;
 
 public class LibraryFragment extends Fragment {
-
     private FragmentLibraryBinding binding;
+    private LibraryViewModel viewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        LibraryViewModel libraryViewModel =
-                new ViewModelProvider(this).get(LibraryViewModel.class);
-
         binding = FragmentLibraryBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        final TextView textView = binding.textLibrary;
-        libraryViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
+        viewModel = new ViewModelProvider(this).get(LibraryViewModel.class);
+        viewModel.setAlbumsViewModel(new ViewModelProvider(this).get(AlbumsViewModel.class));
+
         return root;
     }
 

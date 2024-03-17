@@ -13,5 +13,6 @@
     <string name="content_description_share">Share images and collection</string>
     <string name="title_account">My account</string>
     <string name="content_description_account">Config account and settings the gallery</string>
+    <string name="album_item_quantifier">items</string>
 
 </resources>
