@@ -1,8 +1,6 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.content.Context;
-import android.text.Layout;
-import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +15,6 @@ import com.google.android.flexbox.FlexboxLayoutManager;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import android21ktpm3.group07.androidgallery.R;
@@ -27,10 +23,21 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
     private final Context context;
     private final List<Pair<LocalDate, List<Photo>>> groupedPhotos;
+    
+    public PhotoAdapter.OnItemSelectedListener childSelectedCB;
+    public PhotoAdapter.OnItemUnselectedListener childUnselectedCB;
 
     public PhotosRecyclerAdapter(Context context, List<Pair<LocalDate, List<Photo>>> groupedPhotos) {
         this.context = context;
         this.groupedPhotos = groupedPhotos;
+    }
+
+    public void setChildItemSelectedAdapter(PhotoAdapter.OnItemSelectedListener cb) {
+        childSelectedCB = cb;
+    }
+
+    public void setChildItemUnselectedAdapter(PhotoAdapter.OnItemUnselectedListener cb) {
+        childUnselectedCB = cb;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder{
@@ -65,7 +72,11 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
         List<Photo> photoList = groupedPhotos.get(position).second;
 
         holder.dateText.setText(date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
         PhotoAdapter innerAdapter = new PhotoAdapter(context, photoList);
+        innerAdapter.setOnItemSelectedListener(childSelectedCB);
+        innerAdapter.setOnItemUnselectedListener(childUnselectedCB);
+
         holder.innerRecyclerView.setAdapter(innerAdapter);
 
         // TODO: Feed image data programmatically into this ViewHolder later

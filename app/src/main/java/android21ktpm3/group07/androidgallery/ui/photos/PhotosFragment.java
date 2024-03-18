@@ -1,21 +1,37 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
+import static androidx.core.content.FileProvider.getUriForFile;
+
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import java.io.File;
+import java.util.ArrayList;
+
+import android21ktpm3.group07.androidgallery.IMenuItemHandler;
+import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
+import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotosFragment extends Fragment {
     private FragmentPhotosBinding binding;
+    private Menu menu;
     protected PhotosViewModel photosViewModel;
+
+    protected IMenuItemHandler handler = null;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -24,7 +40,6 @@ public class PhotosFragment extends Fragment {
         photosViewModel.setUpdateTask(UpdateRecyclerView);
         initVM();
 
-
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
@@ -32,6 +47,21 @@ public class PhotosFragment extends Fragment {
         binding.recyclerView.setLayoutManager(layoutManager);
 
         return root;
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (!(context instanceof IMenuItemHandler)) return;
+        
+        handler = (IMenuItemHandler) context;
+        handler.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.share) {
+                sharePhotos();
+                return true;
+            }
+            return false;
+        });
     }
 
     @Override
@@ -47,10 +77,55 @@ public class PhotosFragment extends Fragment {
     public Runnable UpdateRecyclerView = new Runnable() {
         @Override
         public void run() {
-            binding.recyclerView.setAdapter(new PhotosRecyclerAdapter(
+            PhotosRecyclerAdapter adapter = new PhotosRecyclerAdapter(
                     getActivity(),
                     photosViewModel.getPhotosGroupByDate()
-            ));
+            );
+
+            adapter.setChildItemSelectedAdapter(photo -> {
+                displayShareOptionItem();
+                photosViewModel.addToSelectedPhotos(photo);
+            });
+            adapter.setChildItemUnselectedAdapter(photo -> {
+                photosViewModel.removeFromSelectedPhotos(photo);
+                if (photosViewModel.getSelectedPhotos().isEmpty()) {
+                    hideShareOptionItem();
+                }
+            });
+
+            binding.recyclerView.setAdapter(adapter);
         }
     };
+
+    public void displayShareOptionItem() {
+        handler.getMenu().findItem(R.id.share)
+                .setVisible(true)
+                .setEnabled(true);
+    }
+
+    public void hideShareOptionItem() {
+        handler.getMenu().findItem(R.id.share)
+                .setVisible(false)
+                .setEnabled(false);
+    }
+
+    public void sharePhotos() {
+        ArrayList<Uri> imageUris = new ArrayList<>();
+
+        for (Photo photo : photosViewModel.getSelectedPhotos()) {
+            File file = new File(photo.getPath());
+
+            Uri imageUri = getUriForFile(
+                    getContext(),
+                    "android21ktpm3.group07.androidgallery.fileprovider",
+                    file);
+            imageUris.add(imageUri);
+        }
+
+        Intent shareIntent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        shareIntent.putExtra(Intent.EXTRA_STREAM, imageUris);
+        shareIntent.setType("image/*");
+
+        startActivity(Intent.createChooser(shareIntent, "Share images to..."));
+    }
 }

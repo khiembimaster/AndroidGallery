@@ -22,7 +22,7 @@
             app:layout_scrollFlags="scroll|enterAlways|snap"
             app:menu="@menu/top_toolbar_menu"
             app:title="@string/app_name"
-            app:titleTextAppearance="@style/TextAppearance.AppCompat.Display1"
+            app:titleTextAppearance="@style/TextAppearance.AppCompat.Large"
             app:titleTextColor="?attr/colorPrimaryInverse" />
 
     </com.google.android.material.appbar.AppBarLayout>

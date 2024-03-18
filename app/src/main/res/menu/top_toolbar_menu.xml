@@ -11,8 +11,9 @@
     <item
         android:id="@+id/share"
         android:title="@string/title_share"
+        android:visible="false"
         android:contentDescription="@string/content_description_share"
-        android:icon="@drawable/group_fill1_wght500_grad200_opsz24"
+        android:icon="?attr/actionModeShareDrawable"
         app:showAsAction="ifRoom" />
 
     <item

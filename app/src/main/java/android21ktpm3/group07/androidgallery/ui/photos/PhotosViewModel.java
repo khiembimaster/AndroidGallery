@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,6 +21,9 @@ import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 public class PhotosViewModel extends ViewModel {
     private List<Photo> photos;
     private PhotoRepository photoRepository;
+
+    private List<Photo> selectedPhotos = new ArrayList<>();
+
     ExecutorService executor = Executors.newSingleThreadExecutor();
     Handler handler = new Handler(Looper.getMainLooper());
 
@@ -35,6 +39,18 @@ public class PhotosViewModel extends ViewModel {
 
     public void setUpdateTask(Runnable updateTask) {
         this.updateTask = updateTask;
+    }
+
+    public List<Photo> getSelectedPhotos() {
+        return selectedPhotos;
+    }
+
+    public void addToSelectedPhotos(Photo photo) {
+        selectedPhotos.add(photo);
+    }
+
+    public void removeFromSelectedPhotos(Photo photo) {
+        selectedPhotos.remove(photo);
     }
 
     public void loadPhotos() {

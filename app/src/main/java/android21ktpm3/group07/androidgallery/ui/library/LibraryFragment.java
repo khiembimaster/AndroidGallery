@@ -4,15 +4,12 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentLibraryBinding;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 import android21ktpm3.group07.androidgallery.ui.library.albums.AlbumsViewModel;
 
 public class LibraryFragment extends Fragment {

@@ -1,7 +1,6 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.content.Context;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,12 +21,30 @@ import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> {
+    public interface OnItemSelectedListener {
+        void onItemSelected(Photo photo);
+    }
+
+    public interface OnItemUnselectedListener {
+        void onItemUnselected(Photo photo);
+    }
+
+    public OnItemSelectedListener selectedCB;
+    public OnItemUnselectedListener unselectedCB;
     private final Context context;
     private final List<Photo> photos;
 
     public PhotoAdapter(Context context, List<Photo> photos) {
         this.context = context;
         this.photos = photos;
+    }
+
+    public void setOnItemSelectedListener(OnItemSelectedListener cb) {
+        selectedCB = cb;
+    }
+
+    public void setOnItemUnselectedListener(OnItemUnselectedListener cb) {
+        unselectedCB = cb;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder{
@@ -92,6 +109,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 view.startAnimation(holder.scaleDown);
                 holder.selectedIcon.setVisibility(View.VISIBLE);
                 holder.isSelected = true;
+                selectedCB.onItemSelected(photo);
             }
 
             return true;
@@ -106,6 +124,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 holder.selectedIcon.setVisibility(View.GONE);
                 view.startAnimation(holder.scaleUp);
                 holder.isSelected = false;
+                unselectedCB.onItemUnselected(photo);
             }
         });
     }
