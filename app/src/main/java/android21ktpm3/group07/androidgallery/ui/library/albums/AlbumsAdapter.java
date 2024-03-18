@@ -2,12 +2,15 @@ package android21ktpm3.group07.androidgallery.ui.library.albums;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -66,6 +69,13 @@ public class AlbumsAdapter extends RecyclerView.Adapter<AlbumsAdapter.ViewHolder
         // TODO: use string resource instead of hard code
         holder.tv_itemsCount.setText(
                 String.format("%d %s", album.getSize(), "items"));
+
+        holder.imageView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, AlbumActivity.class);
+            intent.putExtra("albumBucketID", album.getBucketID());
+            context.startActivity(intent);
+        });
+
     }
 
     @Override

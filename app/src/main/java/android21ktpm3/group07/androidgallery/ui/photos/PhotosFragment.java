@@ -15,14 +15,14 @@ import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotosFragment extends Fragment {
     private FragmentPhotosBinding binding;
-    private PhotosViewModel photosViewModel;
+    protected PhotosViewModel photosViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         photosViewModel = new ViewModelProvider(this).get(PhotosViewModel.class);
         photosViewModel.setPhotoRepository(new PhotoRepository(this.getActivity()));
         photosViewModel.setUpdateTask(UpdateRecyclerView);
-        photosViewModel.loadPhotos();
+        initVM();
 
 
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
@@ -38,6 +38,10 @@ public class PhotosFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    public void initVM() {
+        photosViewModel.loadPhotos();
     }
 
     public Runnable UpdateRecyclerView = new Runnable() {

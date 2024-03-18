@@ -46,7 +46,7 @@ public class AlbumsFragment extends Fragment {
     public Runnable UpdateRecyclerView = new Runnable() {
         @Override
         public void run() {
-            Log.d("AlbumsFragment", "UpdateRecyclerView: " + viewModel.getAlbums().get(0).getCoverPhotoPath());
+            Log.d("AlbumsFragment", "UpdateRecyclerView: " + viewModel.getAlbums().get(0).getBucketID());
             binding.recyclerView.setAdapter(new AlbumsAdapter(
                     getActivity(),
                     viewModel.getAlbums()

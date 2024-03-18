@@ -45,6 +45,14 @@ public class PhotosViewModel extends ViewModel {
         });
     }
 
+    public void loadPhotos(long albumBucketID) {
+        executor.execute(() -> {
+            photos = photoRepository.getPhotosInAlbum(albumBucketID);
+
+            handler.post(updateTask);
+        });
+    }
+
 
     /**
      * Groups the photos by their modified date and returns a list of pairs, where the

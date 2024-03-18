@@ -12,14 +12,17 @@ public class Album {
     private int size = 0;
     private long lastModifiedDate;
 
+    private long BucketID;
+
     public Album() {}
 
-    public Album(String name, String path, String coverPhotoPath, long lastModifiedDate) {
+    public Album(String name, String path, String coverPhotoPath, long lastModifiedDate, long bucketID) {
         this.name = name;
         this.path = path;
         this.size = 1;
         this.coverPhotoPath = coverPhotoPath;
         this.lastModifiedDate = lastModifiedDate;
+        this.BucketID = bucketID;
     }
 
     public String getName() {
@@ -40,6 +43,10 @@ public class Album {
 
     public long getLastModifiedDate() {
         return lastModifiedDate;
+    }
+
+    public long getBucketID() {
+        return BucketID;
     }
 
     public void setName(String name) {
