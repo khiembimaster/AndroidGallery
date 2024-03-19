@@ -26,7 +26,7 @@ import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
-public class PhotosFragment extends Fragment {
+public class PhotosFragment extends Fragment implements PhotoAdapter.OnItemSelectedListener  {
     private FragmentPhotosBinding binding;
     private Menu menu;
     protected PhotosViewModel photosViewModel;
@@ -53,7 +53,7 @@ public class PhotosFragment extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         if (!(context instanceof IMenuItemHandler)) return;
-        
+
         handler = (IMenuItemHandler) context;
         handler.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.share) {
@@ -83,7 +83,7 @@ public class PhotosFragment extends Fragment {
             );
 
             adapter.setChildItemSelectedAdapter(photo -> {
-                displayShareOptionItem();
+                displayShareOptionItem(photo);
                 photosViewModel.addToSelectedPhotos(photo);
             });
             adapter.setChildItemUnselectedAdapter(photo -> {
@@ -97,10 +97,18 @@ public class PhotosFragment extends Fragment {
         }
     };
 
-    public void displayShareOptionItem() {
-        handler.getMenu().findItem(R.id.share)
-                .setVisible(true)
-                .setEnabled(true);
+    public void displayShareOptionItem(Photo photo) {
+//        handler.getMenu().findItem(R.id.share)
+//                .setVisible(true)
+//                .setEnabled(true);
+        System.out.println(photo.getFileSize());
+        Intent intent = new Intent(getContext(), ImageActivity.class);
+        intent.putExtra("photo_path", photo.getPath());
+        intent.putExtra("photo_tags", photo.getTags());
+        intent.putExtra("photo_date", photo.getModifiedDate());
+        intent.putExtra("photo_size", photo.getFileSize());
+
+        startActivity(intent);
     }
 
     public void hideShareOptionItem() {
@@ -127,5 +135,15 @@ public class PhotosFragment extends Fragment {
         shareIntent.setType("image/*");
 
         startActivity(Intent.createChooser(shareIntent, "Share images to..."));
+    }
+
+    @Override
+    public void onItemSelected(Photo photo) {
+
+        Intent intent = new Intent(getContext(), ImageActivity.class);
+
+        intent.putExtra("photo_path", photo.getPath());
+
+        startActivity(intent);
     }
 }

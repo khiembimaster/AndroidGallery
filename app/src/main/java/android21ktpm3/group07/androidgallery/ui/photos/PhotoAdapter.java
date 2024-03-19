@@ -1,6 +1,7 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
 
+import android21ktpm3.group07.androidgallery.MainActivity;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
@@ -37,7 +39,9 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     public PhotoAdapter(Context context, List<Photo> photos) {
         this.context = context;
         this.photos = photos;
+
     }
+
 
     public void setOnItemSelectedListener(OnItemSelectedListener cb) {
         selectedCB = cb;
@@ -125,7 +129,13 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 view.startAnimation(holder.scaleUp);
                 holder.isSelected = false;
                 unselectedCB.onItemUnselected(photo);
+
+            } else{
+
+                selectedCB.onItemSelected(photo);
             }
+
+
         });
     }
 

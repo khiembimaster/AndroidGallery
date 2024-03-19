@@ -1,5 +1,7 @@
 package android21ktpm3.group07.androidgallery;
 
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,11 +16,18 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
-import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements IMenuItemHandler {
+import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
+import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.ui.photos.ImageActivity;
+import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
+
+public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
     private MaterialToolbar.OnMenuItemClickListener onMenuItemClickListener;
     private ActivityMainBinding binding;
+    public PhotoAdapter.OnItemSelectedListener childSelectedCB;
+
 
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
@@ -35,12 +44,17 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+
+
+
         binding.materialToolbar.setOnMenuItemClickListener(item -> {
             if (onMenuItemClickListener != null) {
                 return onMenuItemClickListener.onMenuItemClick(item);
             }
             return false;
         });
+
+
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
         NavigationUI.setupWithNavController(binding.navView, navController);
@@ -70,4 +84,7 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
     public Menu getMenu() {
         return binding.materialToolbar.getMenu();
     }
+
+
+
 }

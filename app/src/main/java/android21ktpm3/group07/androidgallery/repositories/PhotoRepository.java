@@ -1,5 +1,7 @@
 package android21ktpm3.group07.androidgallery.repositories;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -21,9 +23,19 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoRepository {
     private final Context context;
+    private final ContentResolver contentResolver;
+
+    public PhotoRepository(ContentResolver contentResolver) {
+        this.contentResolver = contentResolver;
+        this.context = null;
+    }
+
+
 
     public PhotoRepository(Context context) {
+
         this.context = context;
+        this.contentResolver = null;
     }
 
     public ArrayList<Album> GetAlbums() {
@@ -37,6 +49,7 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATA,
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.BUCKET_ID
+
         };
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
@@ -97,6 +110,9 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATA,
                 MediaStore.Images.Media.DISPLAY_NAME,
                 MediaStore.Images.Media.DATE_MODIFIED,
+                MediaStore.Images.Media.SIZE,
+                MediaStore.Images.Media.DESCRIPTION
+
         };
 
         ArrayList<Photo> photos = new ArrayList<>();
@@ -106,12 +122,16 @@ public class PhotoRepository {
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
                 int DateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+                int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
+                int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
                 do {
                     String path = cursor.getString(PathColumnIdx);
                     String name = cursor.getString(NameColumnIdx);
                     long date = cursor.getLong(DateColumnIdx);
+                    String tags = cursor.getString(tagsColumnIdx);
+                    double fileSize = cursor.getDouble(fileSizeColumnIdx);
                     if (path == null) continue;
-                    photos.add(new Photo(path, name, date * 1000));
+                    photos.add(new Photo(path, name, date * 1000,tags,fileSize));
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
@@ -134,6 +154,8 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DISPLAY_NAME,
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.BUCKET_ID,
+                MediaStore.Images.Media.SIZE,
+                MediaStore.Images.Media.DESCRIPTION
         };
 
         ArrayList<Photo> photos = new ArrayList<>();
@@ -148,17 +170,32 @@ public class PhotoRepository {
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
                 int DateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+                int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
+                int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
                 do {
                     String path = cursor.getString(PathColumnIdx);
                     String name = cursor.getString(NameColumnIdx);
                     long date = cursor.getLong(DateColumnIdx);
+                    String tags = cursor.getString(tagsColumnIdx);
+                    double fileSize = cursor.getDouble(fileSizeColumnIdx);
                     if (path == null) continue;
-                    photos.add(new Photo(path, name, date * 1000));
+                    photos.add(new Photo(path, name, date * 1000,tags,fileSize));
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
             Log.e("PhotoRepository", e.toString());
         }
         return photos;
+    }
+    public void updatePhoto(String photoPath, String newTags, long newModifiedDate, double newFileSize) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DESCRIPTION, newTags);
+        values.put(MediaStore.Images.Media.DATE_MODIFIED, newModifiedDate);
+        values.put(MediaStore.Images.Media.SIZE, newFileSize);
+
+        String selection = MediaStore.Images.Media.DATA + "=?";
+        String[] selectionArgs = new String[]{photoPath};
+
+        contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection, selectionArgs);
     }
 }
