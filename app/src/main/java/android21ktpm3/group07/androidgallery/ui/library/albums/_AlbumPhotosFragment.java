@@ -19,4 +19,12 @@ public class _AlbumPhotosFragment extends PhotosFragment {
         }
         super.photosViewModel.loadPhotos(albumBucketID);
     }
+
+    @Override
+    public void displayShareOptionItem() {
+    }
+
+    @Override
+    public void hideShareOptionItem() {
+    }
 }
