@@ -91,6 +91,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 .load(photo.getPath())
                 .sizeMultiplier(0.5f)
                 .centerCrop()
+                .placeholder(R.drawable.image_fill1_wght500_grad200_opsz24)
                 .into(holder.imageView);
 
         ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
@@ -113,7 +114,6 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 view.startAnimation(holder.scaleDown);
                 holder.selectedIcon.setVisibility(View.VISIBLE);
                 holder.isSelected = true;
-                selectedCB.onItemSelected(photo);
             }
 
             return true;
@@ -129,9 +129,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 view.startAnimation(holder.scaleUp);
                 holder.isSelected = false;
                 unselectedCB.onItemUnselected(photo);
-
             } else{
-
                 selectedCB.onItemSelected(photo);
             }
 
