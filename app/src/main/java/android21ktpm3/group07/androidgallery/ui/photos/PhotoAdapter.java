@@ -9,6 +9,7 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -94,7 +95,9 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 holder.selectedIcon.setVisibility(View.VISIBLE);
                 holder.isSelected = true;
 
-                selectedCB.onItemSelected(photo);
+                if (selectedCB != null) {
+                    selectedCB.onItemSelected(photo);
+                }
             }
 
             return true;
@@ -109,9 +112,13 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 holder.selectedIcon.setVisibility(View.GONE);
                 view.startAnimation(holder.scaleUp);
                 holder.isSelected = false;
-                unselectedCB.onItemUnselected(photo);
+                if (unselectedCB != null) {
+                    unselectedCB.onItemUnselected(photo);
+                }
             } else{
-                viewCB.onItemView(photo);
+                if (viewCB != null) {
+                    viewCB.onItemView(photo);
+                }
             }
 
 
@@ -135,8 +142,11 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         void onItemView(Photo photo);
     }
 
+    @Nullable
     public OnItemSelectedListener selectedCB;
+    @Nullable
     public OnItemUnselectedListener unselectedCB;
+    @Nullable
     public OnItemViewListener viewCB;
 
     public void setOnItemSelectedListener(OnItemSelectedListener cb) {

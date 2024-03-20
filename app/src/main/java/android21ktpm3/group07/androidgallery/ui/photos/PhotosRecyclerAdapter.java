@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,8 +24,10 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
     private final Context context;
     private final List<Pair<LocalDate, List<Photo>>> groupedPhotos;
-    
+
+    @Nullable
     public PhotoAdapter.OnItemSelectedListener childSelectedCB;
+    @Nullable
     public PhotoAdapter.OnItemUnselectedListener childUnselectedCB;
     public PhotoAdapter.OnItemViewListener childViewCB;
 

@@ -30,7 +30,7 @@ public class PhotosFragment extends Fragment  {
     private Menu menu;
     protected PhotosViewModel photosViewModel;
 
-    protected IMenuItemHandler handler = null;
+    protected IMenuItemHandler handler;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -82,7 +82,7 @@ public class PhotosFragment extends Fragment  {
             );
 
             adapter.setChildItemSelectedListener(photo -> {
-                displayShareOptionItem(photo);
+                displayShareOptionItem();
                 photosViewModel.addToSelectedPhotos(photo);
             });
             adapter.setChildItemUnselectedListener(photo -> {
@@ -100,7 +100,7 @@ public class PhotosFragment extends Fragment  {
         }
     };
 
-    public void displayShareOptionItem(Photo photo) {
+    public void displayShareOptionItem() {
         handler.getMenu().findItem(R.id.share)
                 .setVisible(true)
                 .setEnabled(true);
