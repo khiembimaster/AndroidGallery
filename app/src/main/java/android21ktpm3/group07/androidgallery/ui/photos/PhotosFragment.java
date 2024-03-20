@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,7 +25,7 @@ import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
-public class PhotosFragment extends Fragment implements PhotoAdapter.OnItemSelectedListener  {
+public class PhotosFragment extends Fragment  {
     private FragmentPhotosBinding binding;
     private Menu menu;
     protected PhotosViewModel photosViewModel;
@@ -82,15 +81,19 @@ public class PhotosFragment extends Fragment implements PhotoAdapter.OnItemSelec
                     photosViewModel.getPhotosGroupByDate()
             );
 
-            adapter.setChildItemSelectedAdapter(photo -> {
+            adapter.setChildItemSelectedListener(photo -> {
                 displayShareOptionItem(photo);
                 photosViewModel.addToSelectedPhotos(photo);
             });
-            adapter.setChildItemUnselectedAdapter(photo -> {
+            adapter.setChildItemUnselectedListener(photo -> {
                 photosViewModel.removeFromSelectedPhotos(photo);
                 if (photosViewModel.getSelectedPhotos().isEmpty()) {
                     hideShareOptionItem();
                 }
+            });
+
+            adapter.setChildItemViewListener(photo -> {
+                viewPhoto(photo);
             });
 
             binding.recyclerView.setAdapter(adapter);
@@ -98,17 +101,9 @@ public class PhotosFragment extends Fragment implements PhotoAdapter.OnItemSelec
     };
 
     public void displayShareOptionItem(Photo photo) {
-//        handler.getMenu().findItem(R.id.share)
-//                .setVisible(true)
-//                .setEnabled(true);
-        System.out.println(photo.getFileSize());
-        Intent intent = new Intent(getContext(), ImageActivity.class);
-        intent.putExtra("photo_path", photo.getPath());
-        intent.putExtra("photo_tags", photo.getTags());
-        intent.putExtra("photo_date", photo.getModifiedDate());
-        intent.putExtra("photo_size", photo.getFileSize());
-
-        startActivity(intent);
+        handler.getMenu().findItem(R.id.share)
+                .setVisible(true)
+                .setEnabled(true);
     }
 
     public void hideShareOptionItem() {
@@ -137,12 +132,17 @@ public class PhotosFragment extends Fragment implements PhotoAdapter.OnItemSelec
         startActivity(Intent.createChooser(shareIntent, "Share images to..."));
     }
 
-    @Override
-    public void onItemSelected(Photo photo) {
+    public void viewPhoto(Photo photo) {
+//        Intent intent = new Intent(getActivity(), ImageActivity.class);
+//        intent.putExtra("photo_path", photo.getPath());
+//        startActivity(intent);
 
+        System.out.println(photo.getFileSize());
         Intent intent = new Intent(getContext(), ImageActivity.class);
-
         intent.putExtra("photo_path", photo.getPath());
+        intent.putExtra("photo_tags", photo.getTags());
+        intent.putExtra("photo_date", photo.getModifiedDate());
+        intent.putExtra("photo_size", photo.getFileSize());
 
         startActivity(intent);
     }

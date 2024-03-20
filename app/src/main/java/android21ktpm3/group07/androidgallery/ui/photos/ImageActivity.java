@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -21,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import android21ktpm3.group07.androidgallery.R;
-import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class ImageActivity extends AppCompatActivity {
@@ -84,11 +82,8 @@ public class ImageActivity extends AppCompatActivity {
 
 
         if (photoPath != null) {
-
             Glide.with(this)
                     .load(photoPath)
-                    .sizeMultiplier(0.5f)
-                    .centerCrop()
                     .into(display);
         }
 

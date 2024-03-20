@@ -1,7 +1,6 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.content.Context;
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,21 +17,10 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
 
-import android21ktpm3.group07.androidgallery.MainActivity;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> {
-    public interface OnItemSelectedListener {
-        void onItemSelected(Photo photo);
-    }
-
-    public interface OnItemUnselectedListener {
-        void onItemUnselected(Photo photo);
-    }
-
-    public OnItemSelectedListener selectedCB;
-    public OnItemUnselectedListener unselectedCB;
     private final Context context;
     private final List<Photo> photos;
 
@@ -40,15 +28,6 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         this.context = context;
         this.photos = photos;
 
-    }
-
-
-    public void setOnItemSelectedListener(OnItemSelectedListener cb) {
-        selectedCB = cb;
-    }
-
-    public void setOnItemUnselectedListener(OnItemUnselectedListener cb) {
-        unselectedCB = cb;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder{
@@ -114,6 +93,8 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 view.startAnimation(holder.scaleDown);
                 holder.selectedIcon.setVisibility(View.VISIBLE);
                 holder.isSelected = true;
+
+                selectedCB.onItemSelected(photo);
             }
 
             return true;
@@ -130,7 +111,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 holder.isSelected = false;
                 unselectedCB.onItemUnselected(photo);
             } else{
-                selectedCB.onItemSelected(photo);
+                viewCB.onItemView(photo);
             }
 
 
@@ -140,5 +121,33 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     @Override
     public int getItemCount() {
         return photos.size();
+    }
+
+    public interface OnItemSelectedListener {
+        void onItemSelected(Photo photo);
+    }
+
+    public interface OnItemUnselectedListener {
+        void onItemUnselected(Photo photo);
+    }
+
+    public interface OnItemViewListener {
+        void onItemView(Photo photo);
+    }
+
+    public OnItemSelectedListener selectedCB;
+    public OnItemUnselectedListener unselectedCB;
+    public OnItemViewListener viewCB;
+
+    public void setOnItemSelectedListener(OnItemSelectedListener cb) {
+        selectedCB = cb;
+    }
+
+    public void setOnItemUnselectedListener(OnItemUnselectedListener cb) {
+        unselectedCB = cb;
+    }
+
+    public void setOnItemViewListener(OnItemViewListener cb) {
+        viewCB = cb;
     }
 }

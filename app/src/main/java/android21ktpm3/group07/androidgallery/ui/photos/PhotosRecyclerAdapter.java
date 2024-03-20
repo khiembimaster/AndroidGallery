@@ -26,18 +26,23 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
     
     public PhotoAdapter.OnItemSelectedListener childSelectedCB;
     public PhotoAdapter.OnItemUnselectedListener childUnselectedCB;
+    public PhotoAdapter.OnItemViewListener childViewCB;
 
     public PhotosRecyclerAdapter(Context context, List<Pair<LocalDate, List<Photo>>> groupedPhotos) {
         this.context = context;
         this.groupedPhotos = groupedPhotos;
     }
 
-    public void setChildItemSelectedAdapter(PhotoAdapter.OnItemSelectedListener cb) {
+    public void setChildItemSelectedListener(PhotoAdapter.OnItemSelectedListener cb) {
         childSelectedCB = cb;
     }
 
-    public void setChildItemUnselectedAdapter(PhotoAdapter.OnItemUnselectedListener cb) {
+    public void setChildItemUnselectedListener(PhotoAdapter.OnItemUnselectedListener cb) {
         childUnselectedCB = cb;
+    }
+
+    public void setChildItemViewListener(PhotoAdapter.OnItemViewListener cb) {
+        childViewCB = cb;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder{
@@ -76,6 +81,7 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
         PhotoAdapter innerAdapter = new PhotoAdapter(context, photoList);
         innerAdapter.setOnItemSelectedListener(childSelectedCB);
         innerAdapter.setOnItemUnselectedListener(childUnselectedCB);
+        innerAdapter.setOnItemViewListener(childViewCB);
 
         holder.innerRecyclerView.setAdapter(innerAdapter);
 
