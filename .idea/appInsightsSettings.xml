@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="android21ktpm3.group07.androidgallery" />
+                  <option name="mobileSdkAppId" value="1:993382304871:android:15e3a85bf82a4b0f20d8c2" />
+                  <option name="projectId" value="android-gallery-21ktpm3-07" />
+                  <option name="projectNumber" value="993382304871" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

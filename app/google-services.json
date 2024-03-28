@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993382304871",
+    "project_id": "android-gallery-21ktpm3-07",
+    "storage_bucket": "android-gallery-21ktpm3-07.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993382304871:android:15e3a85bf82a4b0f20d8c2",
+        "android_client_info": {
+          "package_name": "android21ktpm3.group07.androidgallery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3kLXJgbO8vq2erIOEyW9711Ro-wgNZuY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
