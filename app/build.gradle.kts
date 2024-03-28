@@ -58,5 +58,9 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     // TODO: Add the dependencies for any other Firebase products you want to use
     // See https://firebase.google.com/docs/android/setup#available-libraries
+    implementation("com.google.firebase:firebase-auth")
+    // Also add the dependency for the Google Play services library and specify its version
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+
 
 }
