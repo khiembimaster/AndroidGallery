@@ -32,6 +32,8 @@ import com.google.android.gms.signin.internal.SignInClientImpl;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -60,8 +62,9 @@ import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
 public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
     private MaterialToolbar.OnMenuItemClickListener onMenuItemClickListener;
     private ActivityMainBinding binding;
+    private BottomSheetBehavior bottomSheetBehavior;
     public PhotoAdapter.OnItemSelectedListener childSelectedCB;
-    // Firebase
+    // Firebase --------------------------------
     private FirebaseAuth auth;
     private SignInClient oneTapClient;
     private BeginSignInRequest signInRequest;
@@ -80,6 +83,11 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+//        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet);
+
+
+
         auth = FirebaseAuth.getInstance();
         oneTapClient = Identity.getSignInClient(this);
         signInRequest = BeginSignInRequest.builder()
@@ -162,8 +170,10 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                 if (showOneTapUI) {
                     signIn();
                 }
+                toggleBottomSheet();
                 return true;
             }
+
             return false;
         });
     }
@@ -235,6 +245,11 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                 Log.e(TAG, "Error when upload your images", e);
             }).addOnSuccessListener(taskSnapshot -> {
                 Log.d(TAG, "Your images stored successfully!");
+            }).addOnProgressListener(taskSnapshot -> {
+                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                Log.d(TAG, "Upload is " + progress + "% done");
+            }).addOnPausedListener(taskSnapshot -> {
+                Log.d(TAG, "Upload is paused");
             });
 
             Task<Uri> urlTask = uploadTask.continueWithTask(task -> {
@@ -266,5 +281,10 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
 //                .addOnSuccessListener(aVoid -> {
 //                    Log.d(TAG, "Your albums stored successfully!");
 //                }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your albums", e));
+    }
+
+    private void toggleBottomSheet() {
+        BottomSheetFragment bottomSheetFragment = new BottomSheetFragment();
+        bottomSheetFragment.show(getSupportFragmentManager(), bottomSheetFragment.getTag());
     }
 }
