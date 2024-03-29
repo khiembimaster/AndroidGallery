@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId = "android21ktpm3.group07.androidgallery"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 26
         versionCode = 1
         versionName = "1.0"
 

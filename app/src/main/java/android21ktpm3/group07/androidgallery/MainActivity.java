@@ -72,9 +72,8 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
     private boolean showOneTapUI = true;
     private ActivityResultLauncher<IntentSenderRequest> activityResultLauncher;
     private static final String TAG = "MainActivity";
-
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    FirebaseStorage storage = FirebaseStorage.getInstance();
+
     //--------------------------------------------
 
 
@@ -122,6 +121,12 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                                                 // Sign in success, update UI with the signed-in user's information
                                                 Log.d("MainActivity", "signInWithCredential:success");
                                                 FirebaseUser user = auth.getCurrentUser();
+                                                Map<String, ArrayList<String>> data = new HashMap<>();
+                                                data.put("images", new ArrayList<String>());
+
+                                                db.collection("users").document(user.getUid()).set(data)
+                                                                .addOnSuccessListener(aVoid -> Log.d(TAG, "DocumentSnapshot successfully written!"))
+                                                                .addOnFailureListener(e -> Log.w(TAG, "Error writing document", e));
                                                 updateUI(user);
                                             } else {
                                                 // If sign in fails, display a message to the user.
@@ -170,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                 if (showOneTapUI) {
                     signIn();
                 }
-                toggleBottomSheet();
+                else toggleBottomSheet();
                 return true;
             }
 
@@ -200,10 +205,10 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                         IntentSenderRequest intentSenderRequest = new IntentSenderRequest.Builder(result.getPendingIntent().getIntentSender())
                                 .build();
                         activityResultLauncher.launch(intentSenderRequest);
+                        showOneTapUI = false;
                     } catch (Exception e) {
                         Log.e("MainActivity", "Couldn't start One Tap UI: " + e);
                     }
-                    showOneTapUI = false;
                 })
                 .addOnFailureListener(this, e -> {
                     Log.e("MainActivity", e.getLocalizedMessage());
@@ -213,74 +218,6 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
     private void signOut(){
         auth.signOut();
         showOneTapUI = true;
-    }
-
-    private void upLoadUserImages(FirebaseUser user){
-        if (user == null) return;
-
-
-        // Load images from local storage
-        List<String> imageUrls = new ArrayList<>(); //TODO: Load images from local storage
-        List<String> downLoadUrls = new ArrayList<>();
-
-        // Load albums
-//        List<Album> loadedalbums = new ArrayList<>();//TODO: Load albums from local storage
-//        Map<String, Object> albums = new HashMap<>();
-//        for(Album album : loadedalbums){
-//            albums.put(album.getName(), album.getPhotos()); //TODO: Create getPhotos() method where it returns a list of photos
-//        }
-
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReference();
-        // Create file metadata including the content type
-        StorageMetadata metadata = new StorageMetadata.Builder()
-                .setContentType("image/jpg")
-                .build();
-        for(String url : imageUrls){
-            StorageReference imageRef = storageRef.child(user.getUid()+"/images/"+"/"+url);
-
-            // Upload file to Firebase Storage
-            UploadTask uploadTask = imageRef.putFile(Uri.fromFile(new File(url)), metadata);
-            uploadTask.addOnFailureListener(e -> {
-                Log.e(TAG, "Error when upload your images", e);
-            }).addOnSuccessListener(taskSnapshot -> {
-                Log.d(TAG, "Your images stored successfully!");
-            }).addOnProgressListener(taskSnapshot -> {
-                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-                Log.d(TAG, "Upload is " + progress + "% done");
-            }).addOnPausedListener(taskSnapshot -> {
-                Log.d(TAG, "Upload is paused");
-            });
-
-            Task<Uri> urlTask = uploadTask.continueWithTask(task -> {
-                if (!task.isSuccessful()) {
-                    throw Objects.requireNonNull(task.getException());
-                }
-                return imageRef.getDownloadUrl();
-            }).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Uri downloadUri = task.getResult();
-                    downLoadUrls.add(downloadUri.toString());
-                } else {
-                    Log.e(TAG, "Error when get download url", task.getException());
-                }
-            });
-        }
-
-
-        // Save downLoadUri to Firebase Firestore
-        db.collection("user_images").document(user.getUid())
-                .set(downLoadUrls)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Your images stored successfully!");
-                }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your images", e));
-
-        // Save albums' urls to Firebase Firestore
-//        db.collection("user_albums").document(user.getUid())
-//                .set(albums)
-//                .addOnSuccessListener(aVoid -> {
-//                    Log.d(TAG, "Your albums stored successfully!");
-//                }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your albums", e));
     }
 
     private void toggleBottomSheet() {
