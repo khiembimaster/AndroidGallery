@@ -146,4 +146,8 @@ public class PhotosFragment extends Fragment  {
 
         startActivity(intent);
     }
+
+    private void upLoadToFirebase() {
+
+    }
 }
