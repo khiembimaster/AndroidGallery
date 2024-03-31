@@ -79,10 +79,17 @@ public class Photo implements Parcelable {
         return 0;
     }
 
+
+
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(path);
+        dest.writeString(name);
+        dest.writeLong(modifiedDate);
+        dest.writeDouble(fileSize);
+        dest.writeString(tags);
     }
+
     public static final Creator<Photo> CREATOR = new Creator<Photo>() {
         @Override
         public Photo createFromParcel(Parcel in) {

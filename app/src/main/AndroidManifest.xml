@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!--
-     Required only if your app needs to access images or photos
-     that other apps created.
-    -->
+
     <uses-permission
         android:name="android.permission.READ_MEDIA_IMAGES"
         android:minSdkVersion="33" />
@@ -12,6 +9,12 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="33"
         tools:ignore="ScopedStorage" />
+
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="33"
+        tools:ignore="ScopedStorage"/>
+
 
     <application
         android:allowBackup="true"
@@ -21,8 +24,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:targetSdkVersion = "34"
         android:theme="@style/Theme.AndroidGallery"
-        tools:targetApi="31">
+        tools:targetApi="tiramisu"
+        android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true">
+<!-- targetApi =           33-->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="android21ktpm3.group07.androidgallery.fileprovider"
@@ -47,6 +54,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.photos.ImageActivity"/>
+        <activity android:name=".ui.memories.MemoriesActivity" />
+
     </application>
 
 </manifest>

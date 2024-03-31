@@ -71,6 +71,7 @@ public class ImageActivity extends AppCompatActivity {
 
         contentResolver = getContentResolver();
 
+
         photoPath = getIntent().getStringExtra("photo_path");
         photoTags = getIntent().getStringExtra("photo_tags") == null ? " " : getIntent().getStringExtra("photo_tags");
         photoDate = getIntent().getLongExtra("photo_date", 0); // 0 là giá trị mặc định nếu không tìm thấy
@@ -78,7 +79,7 @@ public class ImageActivity extends AppCompatActivity {
 
 
 
-
+        System.out.println(photoPath);
 
 
         if (photoPath != null) {
