@@ -1,7 +1,8 @@
 package android21ktpm3.group07.androidgallery;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,26 +10,33 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.model.UrlUriLoader;
-import com.bumptech.glide.request.target.BitmapImageViewTarget;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.ktx.Firebase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageException;
-import com.google.firebase.storage.StorageMetadata;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.label.ImageLabel;
+import com.google.mlkit.vision.label.ImageLabeler;
+import com.google.mlkit.vision.label.ImageLabeling;
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
@@ -37,15 +45,17 @@ import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
     private static final String TAG = "BottomSheetFragment";
+    Context context;
     FragmentBottomSheetBinding binding;
-    FirebaseAuth auth;
+    FirebaseAuth auth = null;
+
+    // To use default options:
+    ImageLabeler labeler;
 
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     FirebaseStorage storage = FirebaseStorage.getInstance();
 
     public BottomSheetFragment() {
-        // Required empty public constructor
-        this.auth = FirebaseAuth.getInstance();
     }
 
     @Override
@@ -55,28 +65,39 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        context = getContext();
+        auth = FirebaseAuth.getInstance();
         // Inflate the layout for this fragment
         binding = FragmentBottomSheetBinding.inflate(inflater, container, false);
 
-        FirebaseUser user = auth.getCurrentUser();
-        Glide.with(this)
-                .load(user.getPhotoUrl())
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .into(binding.imgUserAvatar);
-
-        binding.txtDisplayName.setText(user.getDisplayName());
-        binding.txtUserEmail.setText(user.getEmail());
         binding.btnLogout.setOnClickListener(v -> {
-            auth.signOut();
-            getActivity().finish();
+            if(context instanceof MainActivity){
+                ((MainActivity) context).onBottomSheetItemClick("logout");
+            }
         });
-        binding.btnBackupData.setOnClickListener(v -> {
-
-            upLoadUserImages(user);
-
+        binding.btnSignInWithGoogle.setOnClickListener(v -> {
+            if(context instanceof MainActivity){
+                ((MainActivity) context).onBottomSheetItemClick("signInWithGoogle");
+            }
         });
+
+        // Or, to set the minimum confidence required:
+         ImageLabelerOptions options =
+             new ImageLabelerOptions.Builder()
+                 .setConfidenceThreshold(0.5f)
+                 .build();
+         labeler = ImageLabeling.getClient(options);
 
         return binding.getRoot();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        FirebaseUser currentUser = auth.getCurrentUser();
+
+        refreshUI(currentUser);
+
     }
 
     //TODO: Create a service to upload images to Firebase Storage
@@ -85,17 +106,9 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
 
 
         // Load images from local storage
-        PhotoRepository photoRepository = new PhotoRepository(getContext());
+        PhotoRepository photoRepository = new PhotoRepository(context);
         List<Photo> imageUrls = photoRepository.GetAllPhotos(); //TODO: Load images from local storage
-
         List<String> downLoadUrls = new ArrayList<>();
-
-        // Load albums
-//        List<Album> loadedalbums = new ArrayList<>();//TODO: Load albums from local storage
-//        Map<String, Object> albums = new HashMap<>();
-//        for(Album album : loadedalbums){
-//            albums.put(album.getName(), album.getPhotos()); //TODO: Create getPhotos() method where it returns a list of photos
-//        }
 
         // Create a storage reference from our app
         StorageReference storageRef = storage.getReference();
@@ -134,33 +147,73 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
             }).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
                     Uri downloadUri = task.getResult();
-                    db.collection("users").document(auth.getCurrentUser().getUid())
-                            .update("images", FieldValue.arrayUnion(downloadUri.toString()))
-                            .addOnSuccessListener(aVoid -> {
-                                Log.d(TAG, "Your images stored successfully!");
-                            }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your images", e));
+                    Glide.with(this)
+                            .asBitmap()
+                            .load(downloadUri.toString())
+                            .into(new CustomTarget<Bitmap>() {
+                                @Override
+                                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                                    // Bitmap is ready here
+                                    InputImage image = InputImage.fromBitmap(resource, 0);
+                                    labeler.process(image).addOnSuccessListener(imageLabels -> {
+                                        List <String> labels = new ArrayList<>();
+                                        for (ImageLabel label : imageLabels) {
+                                            labels.add(label.getText());
+                                        }
+                                        String userId = Objects.requireNonNull(auth.getCurrentUser()).getUid();
+                                        Map<String, Object> data = new HashMap<>();
+                                        data.put("url", downloadUri.toString());
+                                        data.put("labels", labels);
+                                        db.collection("users")
+                                                .document(userId)
+                                                .collection("images")
+                                                .add(data)
+                                                .addOnSuccessListener(documentReference -> {
+                                                    Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                                                }).addOnFailureListener(e -> {
+                                                    Log.e(TAG, "Error adding document", e);
+                                                });
+                                        return;
+                                    }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your images", e));
+                                }
+
+                                @Override
+                                public void onLoadCleared(@Nullable Drawable placeholder) {
+                                    // Called when the drawable is removed from the target
+                                }
+                            });
+
                 } else {
                     Log.e(TAG, "Error when get download url", task.getException());
                 }
             });
         }
-
-
-//
-
-        // Save albums' urls to Firebase Firestore
-//        db.collection("user_albums").document(user.getUid())
-//                .set(albums)
-//                .addOnSuccessListener(aVoid -> {
-//                    Log.d(TAG, "Your albums stored successfully!");
-//                }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your albums", e));
     }
 
+    public void refreshUI(FirebaseUser user){
+        if (user == null) {
+            binding.imgUserAvatar.setImageResource(R.drawable.account_circle_fill1_wght500_grad200_opsz24);
+            binding.txtDisplayName.setText("Guest");
+            binding.txtUserEmail.setText("Please sign in to use this feature");
+            binding.btnBackupData.setVisibility(View.GONE);
+            binding.btnLogout.setVisibility(View.GONE);
+            return;
+        };
 
-    private boolean checkReadExternalPermission()
-    {
-        String permission = Manifest.permission.READ_MEDIA_IMAGES;
-        int res = getContext().checkCallingOrSelfPermission(permission);
-        return (res == PackageManager.PERMISSION_GRANTED);
+        Glide.with(this)
+                .load(user.getPhotoUrl())
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .into(binding.imgUserAvatar);
+
+        binding.txtDisplayName.setText(user.getDisplayName());
+        binding.txtUserEmail.setText(user.getEmail());
+        binding.btnBackupData.setOnClickListener(v -> {
+            upLoadUserImages(user);
+        });
     }
+
+    public interface OnBottomSheetItemClickListener {
+        void onBottomSheetItemClick(String item);
+    }
+
 }

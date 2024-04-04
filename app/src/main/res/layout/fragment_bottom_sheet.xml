@@ -80,7 +80,15 @@
                 android:id="@+id/progressBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
-
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sign in with Google"
+                android:id="@+id/btnSignInWithGoogle"
+                android:textAlignment="textStart"
+                android:textAppearance="?attr/textAppearanceButton"
+                style="?attr/borderlessButtonStyle"
+                />
             <com.google.android.material.button.MaterialButton
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

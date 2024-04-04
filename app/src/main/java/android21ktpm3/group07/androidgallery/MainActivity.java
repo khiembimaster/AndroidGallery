@@ -1,15 +1,8 @@
 package android21ktpm3.group07.androidgallery;
 
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentSender;
-import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
@@ -17,7 +10,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -28,41 +20,30 @@ import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
 import com.google.android.gms.auth.api.identity.SignInCredential;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.signin.internal.SignInClientImpl;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.ktx.Firebase;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageMetadata;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
-import android21ktpm3.group07.androidgallery.models.Album;
-import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.ui.photos.ImageActivity;
 import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
 
-public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
+public class MainActivity extends AppCompatActivity implements
+        IMenuItemHandler,
+        BottomSheetFragment.OnBottomSheetItemClickListener
+{
     private MaterialToolbar.OnMenuItemClickListener onMenuItemClickListener;
     private ActivityMainBinding binding;
     private BottomSheetBehavior bottomSheetBehavior;
+    private BottomSheetFragment bottomSheetFragment;
     public PhotoAdapter.OnItemSelectedListener childSelectedCB;
     // Firebase --------------------------------
     private FirebaseAuth auth;
@@ -83,9 +64,15 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-//        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet);
-
-
+        binding.materialToolbar.setOnMenuItemClickListener(item -> {
+            if (onMenuItemClickListener != null) {
+                return onMenuItemClickListener.onMenuItemClick(item);
+            }
+            return false;
+        });
+        if (bottomSheetFragment == null) {
+            bottomSheetFragment = new BottomSheetFragment();
+        }
 
         auth = FirebaseAuth.getInstance();
         oneTapClient = Identity.getSignInClient(this);
@@ -121,11 +108,11 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                                                 // Sign in success, update UI with the signed-in user's information
                                                 Log.d("MainActivity", "signInWithCredential:success");
                                                 FirebaseUser user = auth.getCurrentUser();
-                                                Map<String, ArrayList<String>> data = new HashMap<>();
-                                                data.put("images", new ArrayList<String>());
 
-                                                db.collection("users").document(user.getUid()).set(data)
-                                                                .addOnSuccessListener(aVoid -> Log.d(TAG, "DocumentSnapshot successfully written!"))
+                                                db.collection("users").document(user.getUid()).set(new HashMap<>())
+                                                                .addOnSuccessListener(aVoid -> {
+                                                                    Log.d(TAG, "DocumentSnapshot successfully written!");
+                                                                })
                                                                 .addOnFailureListener(e -> Log.w(TAG, "Error writing document", e));
                                                 updateUI(user);
                                             } else {
@@ -139,16 +126,8 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
                     }
                 });
 
-        binding.materialToolbar.setOnMenuItemClickListener(item -> {
-            if (onMenuItemClickListener != null) {
-                return onMenuItemClickListener.onMenuItemClick(item);
-            }
-            return false;
-        });
-
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
         NavigationUI.setupWithNavController(binding.navView, navController);
-
 
         Log.d(TAG, "onCreate");
     }
@@ -157,25 +136,21 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
         if (user != null) {
             Log.d(TAG, "User is signed in");
             showOneTapUI = false;
-            binding.materialToolbar.setTitle(user.getDisplayName());
+            bottomSheetFragment.refreshUI(user);
         } else {
             Log.d(TAG, "User is signed out");
             showOneTapUI = true;
+            bottomSheetFragment.refreshUI(null);
         }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        FirebaseUser currentUser = auth.getCurrentUser();
-        updateUI(currentUser);
 
         this.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.account) {
-                if (showOneTapUI) {
-                    signIn();
-                }
-                else toggleBottomSheet();
+                toggleBottomSheet();
                 return true;
             }
 
@@ -221,7 +196,19 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler{
     }
 
     private void toggleBottomSheet() {
-        BottomSheetFragment bottomSheetFragment = new BottomSheetFragment();
         bottomSheetFragment.show(getSupportFragmentManager(), bottomSheetFragment.getTag());
+    }
+
+    @Override
+    public void onBottomSheetItemClick(String item) {
+        switch (item) {
+            case "signInWithGoogle":
+                signIn();
+                return;
+            case "logout":
+                signOut();
+                return;
+            default:
+        }
     }
 }

@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId = "android21ktpm3.group07.androidgallery"
         minSdk = 26
-        targetSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -64,4 +64,6 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
 
+    // Use this dependency to use the dynamically downloaded model in Google Play Services
+    implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
 }
