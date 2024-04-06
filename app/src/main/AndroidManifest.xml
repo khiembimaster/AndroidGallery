@@ -4,7 +4,8 @@
 
     <uses-permission
         android:name="android.permission.READ_MEDIA_IMAGES"
-        android:minSdkVersion="33" />
+        android:minSdkVersion="33"
+       />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="33"
@@ -14,6 +15,9 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="33"
         tools:ignore="ScopedStorage"/>
+
+    <uses-sdk tools:overrideLibrary="com.hw.videoprocessor"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
 
 
     <application
@@ -27,18 +31,31 @@
         android:targetSdkVersion = "34"
         android:theme="@style/Theme.AndroidGallery"
         tools:targetApi="tiramisu"
+        android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        >
 <!-- targetApi =           33-->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="android21ktpm3.group07.androidgallery.fileprovider"
+
+            android:authorities="android21ktpm3.group07.androidgallery.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"/>
         </provider>
+        <activity android:name="me.iwf.photopicker.PhotoPickerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            />
+        <activity android:name=".ui.memories.slideShow"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            />
+
+        <activity android:name="me.iwf.photopicker.PhotoPagerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"/>
 
         <activity
             android:name=".ui.library.albums.AlbumActivity"
@@ -55,6 +72,8 @@
         </activity>
         <activity android:name=".ui.photos.ImageActivity"/>
         <activity android:name=".ui.memories.MemoriesActivity" />
+        <activity android:name=".ui.memories.DemoActivity" />
+        <activity android:name=".ui.SlideShow.SlideShowActivity"/>
 
     </application>
 

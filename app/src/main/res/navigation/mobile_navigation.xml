@@ -27,4 +27,10 @@
         android:name="android21ktpm3.group07.androidgallery.ui.memories.MemoriesFragment"
         android:label="@string/title_memories"
         tools:layout="@layout/fragment_memories" />
+
+    <fragment
+        android:id="@+id/navigation_slideShow"
+        android:name="android21ktpm3.group07.androidgallery.ui.SlideShow.SlideShowFragment"
+        android:label="@string/title_slideShow"
+        tools:layout="@layout/fragment_slideshow" />
 </navigation>
