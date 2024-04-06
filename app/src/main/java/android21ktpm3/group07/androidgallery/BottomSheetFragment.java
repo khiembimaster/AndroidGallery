@@ -1,6 +1,5 @@
 package android21ktpm3.group07.androidgallery;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -9,9 +8,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.SavedStateViewModelFactory;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -45,40 +48,62 @@ import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
     private static final String TAG = "BottomSheetFragment";
-    Context context;
-    FragmentBottomSheetBinding binding;
-    FirebaseAuth auth = null;
-
+    private UserViewModel UserViewModel;
+    private OnBottomSheetItemClickListener listener;
+    private FragmentBottomSheetBinding binding;
     // To use default options:
-    ImageLabeler labeler;
-
-    FirebaseFirestore db = FirebaseFirestore.getInstance();
-    FirebaseStorage storage = FirebaseStorage.getInstance();
-
+    private ImageLabeler labeler;
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private FirebaseStorage storage = FirebaseStorage.getInstance();
     public BottomSheetFragment() {
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
     }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        context = getContext();
-        auth = FirebaseAuth.getInstance();
+
         // Inflate the layout for this fragment
         binding = FragmentBottomSheetBinding.inflate(inflater, container, false);
+        View root = binding.getRoot();
 
+        if(getContext() instanceof MainActivity){
+            listener =(OnBottomSheetItemClickListener) getContext();
+            UserViewModel = listener.getUserViewModel();
+        }else {
+            throw new RuntimeException(getContext().toString()
+                    + " must implement OnBottomSheetItemClickListener");
+        }
+
+
+
+        ProgressBar progressBar = binding.progressBar;
+        Button btnBackupData = binding.btnBackupData;
+        Button btnLogout = binding.btnLogout;
+        Button btnSignInWithGoogle = binding.btnSignInWithGoogle;
+        UserViewModel.getCanUpload().observe(getViewLifecycleOwner(), btnBackupData::setEnabled);
+        UserViewModel.getCanSignIn().observe(getViewLifecycleOwner(), btnSignInWithGoogle::setEnabled);
+        UserViewModel.getCanLogOut().observe(getViewLifecycleOwner(), btnLogout::setEnabled);
+        UserViewModel.getFirebaseUser().observe(getViewLifecycleOwner(), this::showUserInfo);
+        UserViewModel.getIsProcessing().observe(getViewLifecycleOwner(), progressBar::setIndeterminate);
+
+        binding.btnBackupData.setOnClickListener(v -> {
+//            upLoadUserImages(UserViewModel.getFirebaseUser().getValue());
+        });
         binding.btnLogout.setOnClickListener(v -> {
-            if(context instanceof MainActivity){
-                ((MainActivity) context).onBottomSheetItemClick("logout");
-            }
+            UserViewModel.setCanLogOut(false);
+            listener.onBottomSheetItemClick("logout");
+            UserViewModel.setCanSignIn(true);
         });
         binding.btnSignInWithGoogle.setOnClickListener(v -> {
-            if(context instanceof MainActivity){
-                ((MainActivity) context).onBottomSheetItemClick("signInWithGoogle");
-            }
+            UserViewModel.setCanSignIn(false);
+            UserViewModel.setIsProcessing(true);
+            binding.progressBar.setVisibility(View.VISIBLE);
+            listener.onBottomSheetItemClick("signInWithGoogle");
         });
 
         // Or, to set the minimum confidence required:
@@ -88,25 +113,20 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                  .build();
          labeler = ImageLabeling.getClient(options);
 
-        return binding.getRoot();
+        return root;
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        FirebaseUser currentUser = auth.getCurrentUser();
-
-        refreshUI(currentUser);
-
     }
 
     //TODO: Create a service to upload images to Firebase Storage
-    private void upLoadUserImages(FirebaseUser user){
+    /*private void upLoadUserImages(FirebaseUser user){
         if (user == null) return;
 
-
         // Load images from local storage
-        PhotoRepository photoRepository = new PhotoRepository(context);
+        PhotoRepository photoRepository = new PhotoRepository(getContext());
         List<Photo> imageUrls = photoRepository.GetAllPhotos(); //TODO: Load images from local storage
         List<String> downLoadUrls = new ArrayList<>();
 
@@ -189,16 +209,20 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
             });
         }
     }
-
-    public void refreshUI(FirebaseUser user){
+*/
+    public void showUserInfo(FirebaseUser user){
         if (user == null) {
             binding.imgUserAvatar.setImageResource(R.drawable.account_circle_fill1_wght500_grad200_opsz24);
             binding.txtDisplayName.setText("Guest");
             binding.txtUserEmail.setText("Please sign in to use this feature");
-            binding.btnBackupData.setVisibility(View.GONE);
-            binding.btnLogout.setVisibility(View.GONE);
             return;
         };
+
+        UserViewModel.setCanLogOut(true);
+        UserViewModel.setCanSignIn(false);
+        UserViewModel.setCanUpload(true);
+        UserViewModel.setIsProcessing(false);
+        binding.progressBar.setVisibility(View.GONE);
 
         Glide.with(this)
                 .load(user.getPhotoUrl())
@@ -207,13 +231,11 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
 
         binding.txtDisplayName.setText(user.getDisplayName());
         binding.txtUserEmail.setText(user.getEmail());
-        binding.btnBackupData.setOnClickListener(v -> {
-            upLoadUserImages(user);
-        });
     }
 
     public interface OnBottomSheetItemClickListener {
         void onBottomSheetItemClick(String item);
+        UserViewModel getUserViewModel();
     }
 
 }
