@@ -3,34 +3,42 @@ package android21ktpm3.group07.androidgallery.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import androidx.annotation.NonNull;
-
+import java.time.LocalDate;
 import java.util.Objects;
+
+import android21ktpm3.group07.androidgallery.helpers.DateHelper;
 
 public class Photo implements Parcelable {
     private final String path;
     private final String name;
     private final long modifiedDate;
+    private final long takenDate;
 
     private String tags;
 
     private double fileSize;
 
+    //  Either taken date when it is not 0 or modified date
+    private LocalDate representativeDate;
 
 
-    public Photo(String path, String name, long modifiedDate, String tags, double fizeSize) {
+    public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
+                 double fizeSize) {
         this.path = path;
         this.name = name;
         this.modifiedDate = modifiedDate;
+        this.takenDate = takenDate;
         this.tags = tags;
         this.fileSize = fizeSize;
     }
+
     protected Photo(Parcel in) {
         this.path = in.readString();
         this.name = in.readString();
         this.modifiedDate = in.readLong();
         this.fileSize = in.readDouble();
         this.tags = in.readString();
+        this.takenDate = in.readLong();
     }
 
     public String getPath() {
@@ -61,6 +69,21 @@ public class Photo implements Parcelable {
         this.fileSize = fileSize;
     }
 
+    public long getTakenDate() {
+        return takenDate;
+    }
+
+    public LocalDate getRepresentativeDate() {
+        if (representativeDate == null) {
+            representativeDate = DateHelper.getLocalDate(takenDate == 0 ? modifiedDate : takenDate);
+        }
+        return representativeDate;
+    }
+
+    public long getRepresentativeEpoch() {
+        return takenDate == 0 ? modifiedDate : takenDate;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -83,6 +106,7 @@ public class Photo implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(path);
     }
+
     public static final Creator<Photo> CREATOR = new Creator<Photo>() {
         @Override
         public Photo createFromParcel(Parcel in) {

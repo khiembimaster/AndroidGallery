@@ -42,8 +42,6 @@ public class PhotosFragment extends Fragment {
     private Menu menu;
     private PhotoService photoService;
     private Context context;
-
-    @Nullable
     private PhotosRecyclerAdapter adapter;
 
     public class MyReceiver extends BroadcastReceiver {
@@ -134,7 +132,7 @@ public class PhotosFragment extends Fragment {
     private void initializeRecyclerView() {
         adapter = new PhotosRecyclerAdapter(
                 context,
-                photosViewModel.getPhotosGroupByDate()
+                photosViewModel.getPhotos()
         );
         adapter.setChildItemSelectedListener(photo -> {
             displayShareOptionItem();

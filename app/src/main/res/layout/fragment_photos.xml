@@ -15,6 +15,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:listitem="@layout/images_by_date_layout"/>
+        tools:listitem="@layout/images_by_date_layout" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

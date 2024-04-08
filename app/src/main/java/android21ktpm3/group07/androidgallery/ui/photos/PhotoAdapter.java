@@ -13,7 +13,6 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.flexbox.FlexboxLayoutManager;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
@@ -24,14 +23,15 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> {
     private final Context context;
     private final List<Photo> photos;
+    private int imagesPerRow;
 
-    public PhotoAdapter(Context context, List<Photo> photos) {
+    public PhotoAdapter(Context context, List<Photo> photos, int imagesPerRow) {
         this.context = context;
         this.photos = photos;
-
+        this.imagesPerRow = imagesPerRow;
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder{
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         private final ImageView imageView;
         private final ImageView selectedIcon;
         private final Animation scaleDown;
@@ -43,6 +43,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 
             imageView = itemView.findViewById(R.id.imageView);
             selectedIcon = itemView.findViewById(R.id.selectedIcon);
+
 
             scaleDown = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_down);
             scaleUp = AnimationUtils.loadAnimation(itemView.getContext(), R.anim.scale_up);
@@ -74,23 +75,24 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 .placeholder(R.drawable.image_fill1_wght500_grad200_opsz24)
                 .into(holder.imageView);
 
-        ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
-        if (lp instanceof FlexboxLayoutManager.LayoutParams ) {
-            FlexboxLayoutManager.LayoutParams flexboxLp = (FlexboxLayoutManager.LayoutParams) lp;
-            // TODO: Config item attributes here
-//            flexboxLp.setFlexGrow(1.0f);
-//            flexboxLp.setFlexShrink(1.0f);
-//            flexboxLp.setAlignSelf(AlignItems.FLEX_END);
-        }
+        // ViewGroup.LayoutParams lp = holder.imageView.getLayoutParams();
+        // if (lp instanceof FlexboxLayoutManager.LayoutParams) {
+        //     FlexboxLayoutManager.LayoutParams flexboxLp = (FlexboxLayoutManager.LayoutParams) lp;
+        //     // TODO: Config item attributes here
+        //     flexboxLp.setFlexGrow(1.0f);
+        //     flexboxLp.setFlexShrink(1.0f);
+        //     flexboxLp.setAlignSelf(AlignItems.FLEX_END);
+        // }
 
 
         // TODO: extend onLongClick to turn into selection mode that allows to choose more image
-        //  and replace bottom navbar with a bottom sheet that contains images management features(remove, create collection);
+        //  and replace bottom navbar with a bottom sheet that contains images management
+        //  features(remove, create collection);
         holder.imageView.setOnLongClickListener(view -> {
             Snackbar.make(view, "A Long Click detected on item ", Snackbar.LENGTH_LONG)
                     .setAction("Action", null)
                     .show();
-            if(!holder.isSelected) {
+            if (!holder.isSelected) {
                 view.startAnimation(holder.scaleDown);
                 holder.selectedIcon.setVisibility(View.VISIBLE);
                 holder.isSelected = true;
@@ -108,14 +110,14 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
             Snackbar.make(view, "A Click detected on item ", Snackbar.LENGTH_LONG)
                     .setAction("Action", null)
                     .show();
-            if(holder.isSelected) {
+            if (holder.isSelected) {
                 holder.selectedIcon.setVisibility(View.GONE);
                 view.startAnimation(holder.scaleUp);
                 holder.isSelected = false;
                 if (unselectedCB != null) {
                     unselectedCB.onItemUnselected(photo);
                 }
-            } else{
+            } else {
                 if (viewCB != null) {
                     viewCB.onItemView(photo);
                 }
