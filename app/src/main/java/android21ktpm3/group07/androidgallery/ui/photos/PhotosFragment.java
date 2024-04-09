@@ -38,6 +38,7 @@ public class PhotosFragment extends Fragment {
     protected PhotosViewModel photosViewModel;
     protected IMenuItemHandler handler;
 
+    private final String TAG = "PhotosFragment";
     private FragmentPhotosBinding binding;
     private Menu menu;
     private PhotoService photoService;
@@ -78,17 +79,19 @@ public class PhotosFragment extends Fragment {
         super.onCreate(savedInstanceState);
         context = getContext();
 
-        Intent photoServiceIntent = new Intent(context, PhotoService.class);
+
         ServiceConnection connection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 PhotoService.LocalBinder binder = (PhotoService.LocalBinder) service;
                 photoService = binder.getService();
+
+                Log.d(TAG, "Service connected");
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
-                Log.d("PhotoService", "Service disconnected");
+                Log.d(TAG, "Service disconnected");
             }
         };
 
@@ -105,8 +108,8 @@ public class PhotosFragment extends Fragment {
             );
         }
 
-        context.startService(photoServiceIntent);
-        context.bindService(photoServiceIntent, connection, Context.BIND_AUTO_CREATE);
+        context.bindService(new Intent(context, PhotoService.class), connection,
+                Context.BIND_AUTO_CREATE);
 
         photosViewModel = new ViewModelProvider(this).get(PhotosViewModel.class);
     }
@@ -115,18 +118,27 @@ public class PhotosFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
-
-        LinearLayoutManager layoutManager = new LinearLayoutManager(context);
-        binding.recyclerView.setLayoutManager(layoutManager);
-        binding.recyclerView.setAdapter(adapter);
-
         return binding.getRoot();
     }
 
     @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(context);
+        binding.recyclerView.setLayoutManager(layoutManager);
+        binding.recyclerView.setAdapter(adapter);
+    }
+
+    @Override
     public void onDestroyView() {
-        super.onDestroyView();
+        binding.recyclerView.setAdapter(null);
         binding = null;
+        super.onDestroyView();
+    }
+
+    public void initData() {
+        photoService.getLocalPhotos();
     }
 
     private void initializeRecyclerView() {

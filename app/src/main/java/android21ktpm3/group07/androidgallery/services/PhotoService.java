@@ -7,6 +7,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,17 +37,26 @@ public class PhotoService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        executor.execute(this::getLocalPhotos);
+        if (Objects.equals(intent.getAction(), ACTION_GET_LOCAL_PHOTOS)) {
+            getLocalPhotos();
+        } else {
+            Log.d("PhotoService", "Unknown action: " + intent.getAction());
+        }
 
         return super.onStartCommand(intent, flags, startId);
     }
+
 
     @Override
     public void onDestroy() {
         super.onDestroy();
     }
 
-    private void getLocalPhotos() {
+    public void getLocalPhotos() {
+        executor.execute(this::getLocalPhotosFunc);
+    }
+
+    private void getLocalPhotosFunc() {
         photos = photoRepository.GetAllPhotos();
         Log.d("PhotoService", "Getting local photos: " + photos.size());
         Intent intent = new Intent(ACTION_GET_LOCAL_PHOTOS);

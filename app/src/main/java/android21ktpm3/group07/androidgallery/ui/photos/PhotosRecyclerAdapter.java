@@ -8,7 +8,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.util.Pair;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,8 +22,8 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
     private final Context context;
     private final List<Photo> photos;
-    private List<Pair<LocalDate, List<Photo>>> groupedPhotos;
-    private int innerViewsPerRow = 4;
+    private List<Item> groupedPhotos;
+    private int imagesPerRow = 4;
 
     @Nullable
     public PhotoAdapter.OnItemSelectedListener childSelectedCB;
@@ -50,13 +49,12 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
             innerRecyclerView = itemView.findViewById(R.id.image_by_date_recycler_view);
 
             // Flexbox won't display all images: https://github.com/google/flexbox-layout/issues/420
-            // FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(itemView.getContext());
+            // FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(context);
             // layoutManager.setFlexDirection(FlexDirection.ROW);
 
-            GridLayoutManager layoutManager = new GridLayoutManager(
-                    itemView.getContext(),
-                    innerViewsPerRow
-            );
+            GridLayoutManager layoutManager = new GridLayoutManager(context, imagesPerRow);
+            // LinearLayoutManager layoutManager = new LinearLayoutManager(context,
+            //         LinearLayoutManager.VERTICAL, false);
 
             innerRecyclerView.setLayoutManager(layoutManager);
         }
@@ -85,18 +83,32 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // TODO: Refactor later, this is a mess :v
-        LocalDate date = groupedPhotos.get(position).first;
-        List<Photo> photoList = groupedPhotos.get(position).second;
+        Item cur = groupedPhotos.get(position);
 
-        holder.dateText.setText(DateHelper.formatDate(date, "dd/MM/yyyy"));
+        holder.dateText.setText(DateHelper.formatDate(cur.date, "dd/MM/yyyy"));
 
-        PhotoAdapter innerAdapter = new PhotoAdapter(context, photoList, innerViewsPerRow);
-        innerAdapter.setOnItemSelectedListener(childSelectedCB);
-        innerAdapter.setOnItemUnselectedListener(childUnselectedCB);
-        innerAdapter.setOnItemViewListener(childViewCB);
+        if (cur.adapter == null) {
+            PhotoAdapter adapter = new PhotoAdapter(context, cur.photos);
+            adapter.setOnItemSelectedListener(childSelectedCB);
+            adapter.setOnItemUnselectedListener(childUnselectedCB);
+            adapter.setOnItemViewListener(childViewCB);
 
-        holder.innerRecyclerView.setAdapter(innerAdapter);
+            cur.adapter = adapter;
+        }
+
+        holder.innerRecyclerView.setAdapter(cur.adapter);
+
+        // PhotoAdapter adapter = new PhotoAdapter(context, cur.photos);
+        // adapter.setOnItemSelectedListener(childSelectedCB);
+        // adapter.setOnItemUnselectedListener(childUnselectedCB);
+        // adapter.setOnItemViewListener(childViewCB);
+        // holder.innerRecyclerView.setAdapter(adapter);
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull ViewHolder holder) {
+        holder.innerRecyclerView.setAdapter(null);
+        super.onViewRecycled(holder);
     }
 
     @Override
@@ -112,7 +124,18 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
                 .collect(Collectors.groupingBy(Photo::getRepresentativeDate))
                 .entrySet().stream()
                 .sorted((entry1, entry2) -> entry2.getKey().compareTo(entry1.getKey()))
-                .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
+                .map(entry -> new Item(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private static class Item {
+        public LocalDate date;
+        public List<Photo> photos;
+        public PhotoAdapter adapter;
+
+        public Item(LocalDate date, List<Photo> photos) {
+            this.date = date;
+            this.photos = photos;
+        }
     }
 }

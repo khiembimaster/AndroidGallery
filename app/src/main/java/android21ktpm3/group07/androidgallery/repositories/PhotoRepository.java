@@ -102,6 +102,7 @@ public class PhotoRepository {
         } else {
             collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         }
+
         String[] projection = new String[]{
                 MediaStore.Images.Media._ID,
                 MediaStore.Images.Media.DATA,
@@ -139,6 +140,7 @@ public class PhotoRepository {
         } catch (Exception e) {
             Log.e("PhotoRepository", e.toString());
         }
+
         return photos;
     }
 

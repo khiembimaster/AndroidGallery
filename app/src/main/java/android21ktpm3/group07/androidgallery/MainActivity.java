@@ -1,5 +1,8 @@
 package android21ktpm3.group07.androidgallery;
 
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -10,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.gms.auth.api.identity.BeginSignInRequest;
@@ -26,10 +30,12 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
+import android21ktpm3.group07.androidgallery.services.PhotoService;
 import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
 
 public class MainActivity extends AppCompatActivity implements IMenuItemHandler {
@@ -51,6 +57,30 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
 
     //--------------------------------------------
 
+    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                    isGranted -> {
+                        boolean allGranted = true;
+
+                        for (Map.Entry<String, Boolean> entry : isGranted.entrySet()) {
+                            String permission = entry.getKey();
+                            Boolean granted = entry.getValue();
+                            Log.d(TAG, permission + " " + granted);
+                            if (!granted)
+                                allGranted = false;
+                        }
+
+                        if (allGranted) {
+                            NavHostFragment navHostFragment =
+                                    (NavHostFragment) getSupportFragmentManager()
+                                            .findFragmentById(R.id.nav_host_fragment_activity_main);
+
+                            Intent photoServiceIntent = new Intent(this, PhotoService.class);
+                            photoServiceIntent.setAction(PhotoService.ACTION_GET_LOCAL_PHOTOS);
+                            startService(photoServiceIntent);
+                        }
+                    });
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +88,25 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-//        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet);
+        // Request permissions
+        try {
+            String pkgName = getPackageName();
+            ArrayList<String> permissions = new ArrayList<>(Arrays.asList(getPackageManager()
+                    .getPackageInfo(pkgName, PackageManager.GET_PERMISSIONS)
+                    .requestedPermissions));
 
+            // minSdkVersion doesn't work so we have to manually do this
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                permissions.remove("android.permission.READ_MEDIA_IMAGES");
+            }
+
+            requestPermissionLauncher.launch(permissions.toArray(new String[0]));
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        //        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet);
 
         auth = FirebaseAuth.getInstance();
         oneTapClient = Identity.getSignInClient(this);
@@ -123,7 +170,8 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         NavController navController = Navigation.findNavController(this,
                 R.id.nav_host_fragment_activity_main);
         NavigationUI.setupWithNavController(binding.navView, navController);
-        
+
+
         Log.d(TAG, "onCreate");
     }
 
