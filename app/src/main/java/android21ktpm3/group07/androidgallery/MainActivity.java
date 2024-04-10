@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements
     FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     //--------------------------------------------
-
+    private PhotoUploadWorker photoUploadWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +127,6 @@ public class MainActivity extends AppCompatActivity implements
                 toggleBottomSheet();
                 return true;
             }
-
             return false;
         });
     }
@@ -204,10 +203,10 @@ public class MainActivity extends AppCompatActivity implements
                                     // Sign in success, update UI with the signed-in user's information
                                     Log.d("MainActivity", "signInWithCredential:success");
                                     FirebaseUser user = auth.getCurrentUser();
+                                    updateUI(user);
                                     db.collection("users").document(user.getUid()).set(new HashMap<>())
                                             .addOnSuccessListener(aVoid -> {
                                                 Log.d(TAG, "DocumentSnapshot successfully written!");
-                                                updateUI(user);
                                             })
                                             .addOnFailureListener(e -> Log.w(TAG, "Error writing document", e));
                                 } else {

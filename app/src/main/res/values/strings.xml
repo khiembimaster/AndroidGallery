@@ -58,5 +58,6 @@
     <string name="enter_comment">enter comment...</string>
     <string name="default_web_client_id">993382304871-bo2ut8g1vip0irr69v7916gn3ra2gt6k.apps.googleusercontent.com</string>
     <string name="web_client_id">993382304871-o9dunctufdhofomqs1g26rqn96tdfgnr.apps.googleusercontent.com</string>
-    <string name="secondary_text">secondary_text</string>
+    <string name="secondary_text">Guest</string>
+    <string name="sub_text">Please sign in to use this feature</string>
 </resources>

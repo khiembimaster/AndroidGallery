@@ -15,6 +15,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.SavedStateViewModelFactory;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.work.Constraints;
+import androidx.work.Data;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -41,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
 import android21ktpm3.group07.androidgallery.models.Photo;
@@ -51,17 +59,14 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
     private UserViewModel UserViewModel;
     private OnBottomSheetItemClickListener listener;
     private FragmentBottomSheetBinding binding;
+
     // To use default options:
-    private ImageLabeler labeler;
-    private FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private FirebaseStorage storage = FirebaseStorage.getInstance();
     public BottomSheetFragment() {
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -79,8 +84,6 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                     + " must implement OnBottomSheetItemClickListener");
         }
 
-
-
         ProgressBar progressBar = binding.progressBar;
         Button btnBackupData = binding.btnBackupData;
         Button btnLogout = binding.btnLogout;
@@ -92,12 +95,25 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
         UserViewModel.getIsProcessing().observe(getViewLifecycleOwner(), progressBar::setIndeterminate);
 
         binding.btnBackupData.setOnClickListener(v -> {
-//            upLoadUserImages(UserViewModel.getFirebaseUser().getValue());
-        });
+            UserViewModel.setIsProcessing(true);
+            UserViewModel.setCanUpload(false);
+
+//            PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(PhotoUploadWorker.class, 24, TimeUnit.HOURS)
+//                        .setConstraints(new Constraints.Builder()
+//                            .setRequiresCharging(true)
+//                            .build())
+//                    .build();
+//            WorkManager
+//                    .getInstance(requireContext())
+//                    .enqueueUniquePeriodicWork("sendLogs", ExistingPeriodicWorkPolicy.KEEP, workRequest);
+              WorkRequest workRequest = new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
+                      .build();
+            WorkManager
+                    .getInstance(requireContext())
+                    .enqueue(workRequest);
+         });
         binding.btnLogout.setOnClickListener(v -> {
-            UserViewModel.setCanLogOut(false);
             listener.onBottomSheetItemClick("logout");
-            UserViewModel.setCanSignIn(true);
         });
         binding.btnSignInWithGoogle.setOnClickListener(v -> {
             UserViewModel.setCanSignIn(false);
@@ -106,12 +122,6 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
             listener.onBottomSheetItemClick("signInWithGoogle");
         });
 
-        // Or, to set the minimum confidence required:
-         ImageLabelerOptions options =
-             new ImageLabelerOptions.Builder()
-                 .setConfidenceThreshold(0.5f)
-                 .build();
-         labeler = ImageLabeling.getClient(options);
 
         return root;
     }
@@ -119,102 +129,20 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-    }
-
-    //TODO: Create a service to upload images to Firebase Storage
-    /*private void upLoadUserImages(FirebaseUser user){
-        if (user == null) return;
-
-        // Load images from local storage
-        PhotoRepository photoRepository = new PhotoRepository(getContext());
-        List<Photo> imageUrls = photoRepository.GetAllPhotos(); //TODO: Load images from local storage
-        List<String> downLoadUrls = new ArrayList<>();
-
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReference();
-        // Create file metadata including the content type
-        for(Photo photo : imageUrls){
-
-            Uri file = Uri.fromFile(new File(photo.getPath()));
-
-            StorageReference imageRef = storageRef.child("user/"+user.getUid()+"/"+file.getLastPathSegment());
-            // Upload file to Firebase Storage
-            UploadTask uploadTask = imageRef.putFile(file);
-
-            uploadTask.addOnFailureListener(e -> {
-                Log.e(TAG, "Error when upload your images", e);
-                int errorCode = ((StorageException) e).getErrorCode();
-                String errorMessage = e.getMessage();
-            }).addOnSuccessListener(taskSnapshot -> {
-                Log.d(TAG, "Your images stored successfully!");
-                binding.progressBar.setVisibility(View.GONE);
-            }).addOnProgressListener(taskSnapshot -> {
-                binding.progressBar.setVisibility(View.VISIBLE);
-                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-                binding.progressBar.setProgress((int) progress);
-                Log.d(TAG, "Upload is " + progress + "% done");
-
-            }).addOnPausedListener(taskSnapshot -> {
-                Log.d(TAG, "Upload is paused");
-                binding.progressBar.setVisibility(View.GONE);
-            });
-
-            Task<Uri> urlTask = uploadTask.continueWithTask(task -> {
-                if (!task.isSuccessful()) {
-                    throw Objects.requireNonNull(task.getException());
-                }
-                return imageRef.getDownloadUrl();
-            }).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Uri downloadUri = task.getResult();
-                    Glide.with(this)
-                            .asBitmap()
-                            .load(downloadUri.toString())
-                            .into(new CustomTarget<Bitmap>() {
-                                @Override
-                                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                                    // Bitmap is ready here
-                                    InputImage image = InputImage.fromBitmap(resource, 0);
-                                    labeler.process(image).addOnSuccessListener(imageLabels -> {
-                                        List <String> labels = new ArrayList<>();
-                                        for (ImageLabel label : imageLabels) {
-                                            labels.add(label.getText());
-                                        }
-                                        String userId = Objects.requireNonNull(auth.getCurrentUser()).getUid();
-                                        Map<String, Object> data = new HashMap<>();
-                                        data.put("url", downloadUri.toString());
-                                        data.put("labels", labels);
-                                        db.collection("users")
-                                                .document(userId)
-                                                .collection("images")
-                                                .add(data)
-                                                .addOnSuccessListener(documentReference -> {
-                                                    Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
-                                                }).addOnFailureListener(e -> {
-                                                    Log.e(TAG, "Error adding document", e);
-                                                });
-                                        return;
-                                    }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your images", e));
-                                }
-
-                                @Override
-                                public void onLoadCleared(@Nullable Drawable placeholder) {
-                                    // Called when the drawable is removed from the target
-                                }
-                            });
-
-                } else {
-                    Log.e(TAG, "Error when get download url", task.getException());
-                }
-            });
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        if(auth.getCurrentUser() != null){
+            showUserInfo(auth.getCurrentUser());
         }
     }
-*/
+
     public void showUserInfo(FirebaseUser user){
         if (user == null) {
             binding.imgUserAvatar.setImageResource(R.drawable.account_circle_fill1_wght500_grad200_opsz24);
             binding.txtDisplayName.setText("Guest");
             binding.txtUserEmail.setText("Please sign in to use this feature");
+            UserViewModel.setCanLogOut(false);
+            UserViewModel.setCanSignIn(true);
+            UserViewModel.setCanUpload(false);
             return;
         };
 
@@ -222,7 +150,6 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
         UserViewModel.setCanSignIn(false);
         UserViewModel.setCanUpload(true);
         UserViewModel.setIsProcessing(false);
-        binding.progressBar.setVisibility(View.GONE);
 
         Glide.with(this)
                 .load(user.getPhotoUrl())

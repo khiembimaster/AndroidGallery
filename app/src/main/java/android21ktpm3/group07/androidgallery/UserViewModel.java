@@ -20,6 +20,7 @@ public class UserViewModel extends ViewModel {
     private final MutableLiveData<Boolean> canSignIn;
     private final MutableLiveData<Boolean> canLogOut;
 
+
     public UserViewModel(SavedStateHandle savedStateHandle){
         this.savedStateHandle = savedStateHandle;
         canUpload = savedStateHandle.getLiveData(CAN_UPLOAD_KEY);

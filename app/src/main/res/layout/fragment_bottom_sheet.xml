@@ -36,7 +36,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
                         android:scaleType="centerCrop"
-                        android:src="@drawable/avatar03"
+                        android:src="@drawable/account_circle_fill1_wght500_grad200_opsz24"
                         />
 
                     <LinearLayout
@@ -58,7 +58,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="@string/secondary_text"
+                            android:text="@string/sub_text"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?android:attr/textColorSecondary"
                             />
