@@ -60,4 +60,5 @@
     <string name="web_client_id">993382304871-o9dunctufdhofomqs1g26rqn96tdfgnr.apps.googleusercontent.com</string>
     <string name="secondary_text">Guest</string>
     <string name="sub_text">Please sign in to use this feature</string>
+    <string name="searchbar_hint">type some thing here</string>
 </resources>
