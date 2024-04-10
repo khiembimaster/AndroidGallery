@@ -9,6 +9,10 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,12 +20,20 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
 public class PhotoRepository {
+    private final String TAG = this.getClass().getSimpleName();
     private final Context context;
     private final ContentResolver contentResolver;
+
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private final FirebaseStorage storage = FirebaseStorage.getInstance();
+    @Nullable
+    private FirebaseUser user;
 
     public PhotoRepository(ContentResolver contentResolver) {
         this.contentResolver = contentResolver;
@@ -208,5 +220,15 @@ public class PhotoRepository {
 
         contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection,
                 selectionArgs);
+    }
+
+    public void setFirebaseUser(FirebaseUser user) {
+        Log.d(TAG, "setFirebaseUser");
+        this.user = user;
+    }
+
+    public void test() {
+        if (user == null) return;
+
     }
 }

@@ -1,9 +1,12 @@
 package android21ktpm3.group07.androidgallery;
 
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 
@@ -13,7 +16,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.gms.auth.api.identity.BeginSignInRequest;
@@ -45,6 +47,10 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
     private ActivityMainBinding binding;
     private BottomSheetBehavior bottomSheetBehavior;
 
+    private PhotoService photoService;
+    private boolean serviceBound = false;
+    private boolean permissionsGranted = false;
+
     // Firebase --------------------------------
     private FirebaseAuth auth;
     private SignInClient oneTapClient;
@@ -57,54 +63,36 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
 
     //--------------------------------------------
 
-    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
-                    isGranted -> {
-                        boolean allGranted = true;
-
-                        for (Map.Entry<String, Boolean> entry : isGranted.entrySet()) {
-                            String permission = entry.getKey();
-                            Boolean granted = entry.getValue();
-                            Log.d(TAG, permission + " " + granted);
-                            if (!granted)
-                                allGranted = false;
-                        }
-
-                        if (allGranted) {
-                            NavHostFragment navHostFragment =
-                                    (NavHostFragment) getSupportFragmentManager()
-                                            .findFragmentById(R.id.nav_host_fragment_activity_main);
-
-                            Intent photoServiceIntent = new Intent(this, PhotoService.class);
-                            photoServiceIntent.setAction(PhotoService.ACTION_GET_LOCAL_PHOTOS);
-                            startService(photoServiceIntent);
-                        }
-                    });
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Request permissions
-        try {
-            String pkgName = getPackageName();
-            ArrayList<String> permissions = new ArrayList<>(Arrays.asList(getPackageManager()
-                    .getPackageInfo(pkgName, PackageManager.GET_PERMISSIONS)
-                    .requestedPermissions));
+        Intent photoServiceIntent = new Intent(this, PhotoService.class);
+        startService(photoServiceIntent);
 
-            // minSdkVersion doesn't work so we have to manually do this
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                permissions.remove("android.permission.READ_MEDIA_IMAGES");
+        // bind photo service
+        ServiceConnection connection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                PhotoService.LocalBinder binder = (PhotoService.LocalBinder) service;
+                photoService = binder.getService();
+
+                serviceBound = true;
+                doWhenServiceBoundAndPermissionsGranted();
+                Log.d(TAG, "Service connected");
             }
 
-            requestPermissionLauncher.launch(permissions.toArray(new String[0]));
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                serviceBound = false;
+                Log.d(TAG, "Service disconnected");
+            }
+        };
+        bindService(new Intent(this, PhotoService.class), connection, BIND_AUTO_CREATE);
 
+        requestPermission();
 
         //        bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomSheet);
 
@@ -141,8 +129,9 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
                                         // information
                                         Log.d("MainActivity", "signInWithCredential:success");
                                         FirebaseUser user = auth.getCurrentUser();
+
                                         Map<String, ArrayList<String>> data = new HashMap<>();
-                                        data.put("images", new ArrayList<String>());
+                                        data.put("images", new ArrayList<>());
 
                                         db.collection("users").document(user.getUid()).set(data)
                                                 .addOnSuccessListener(aVoid -> Log.d(TAG,
@@ -170,20 +159,6 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         NavController navController = Navigation.findNavController(this,
                 R.id.nav_host_fragment_activity_main);
         NavigationUI.setupWithNavController(binding.navView, navController);
-
-
-        Log.d(TAG, "onCreate");
-    }
-
-    private void updateUI(FirebaseUser user) {
-        if (user != null) {
-            Log.d(TAG, "User is signed in");
-            showOneTapUI = false;
-            binding.materialToolbar.setTitle(user.getDisplayName());
-        } else {
-            Log.d(TAG, "User is signed out");
-            showOneTapUI = true;
-        }
     }
 
     @Override
@@ -205,7 +180,6 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         });
     }
 
-
     @Override
     public void setOnMenuItemClickListener(MaterialToolbar.OnMenuItemClickListener listener) {
         onMenuItemClickListener = listener;
@@ -217,6 +191,54 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
     @Override
     public Menu getMenu() {
         return binding.materialToolbar.getMenu();
+    }
+
+    private void requestPermission() {
+        ActivityResultLauncher<String[]> requestPermissionLauncher =
+                registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                        isGranted -> {
+                            for (Map.Entry<String, Boolean> entry : isGranted.entrySet()) {
+                                String permission = entry.getKey();
+                                Boolean granted = entry.getValue();
+                                Log.d(TAG, permission + " " + granted);
+
+                                if (!granted) {
+                                    finish();
+                                }
+                            }
+
+                            permissionsGranted = true;
+                            doWhenServiceBoundAndPermissionsGranted();
+                            Log.d(TAG, "Authentication finished");
+                        }
+                );
+
+        try {
+            String pkgName = getPackageName();
+            ArrayList<String> permissions = new ArrayList<>(Arrays.asList(getPackageManager()
+                    .getPackageInfo(pkgName, PackageManager.GET_PERMISSIONS)
+                    .requestedPermissions));
+
+            // minSdkVersion doesn't work so we have to manually do this
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                permissions.remove("android.permission.READ_MEDIA_IMAGES");
+            }
+
+            requestPermissionLauncher.launch(permissions.toArray(new String[0]));
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void updateUI(FirebaseUser user) {
+        if (user != null) {
+            Log.d(TAG, "User is signed in");
+            showOneTapUI = false;
+            binding.materialToolbar.setTitle(user.getDisplayName());
+        } else {
+            Log.d(TAG, "User is signed out");
+            showOneTapUI = true;
+        }
     }
 
     private void signIn() {
@@ -245,5 +267,11 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
     private void toggleBottomSheet() {
         BottomSheetFragment bottomSheetFragment = new BottomSheetFragment();
         bottomSheetFragment.show(getSupportFragmentManager(), bottomSheetFragment.getTag());
+    }
+
+    private void doWhenServiceBoundAndPermissionsGranted() {
+        if (!serviceBound || !permissionsGranted) return;
+
+        photoService.getLocalPhotos();
     }
 }

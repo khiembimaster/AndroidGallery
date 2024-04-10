@@ -21,6 +21,8 @@ public class Photo implements Parcelable {
     //  Either taken date when it is not 0 or modified date
     private LocalDate representativeDate;
 
+    private boolean isLoading = false;
+
 
     public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
                  double fizeSize) {
@@ -82,6 +84,14 @@ public class Photo implements Parcelable {
 
     public long getRepresentativeEpoch() {
         return takenDate == 0 ? modifiedDate : takenDate;
+    }
+
+    public boolean isLoading() {
+        return isLoading;
+    }
+
+    public void setLoading(boolean loading) {
+        isLoading = loading;
     }
 
     @Override

@@ -2,17 +2,15 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 
 import static androidx.core.content.FileProvider.getUriForFile;
 
-import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -21,6 +19,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.os.HandlerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,35 +35,24 @@ import android21ktpm3.group07.androidgallery.services.PhotoService;
 
 public class PhotosFragment extends Fragment {
     protected PhotosViewModel photosViewModel;
-    protected IMenuItemHandler handler;
+    protected IMenuItemHandler menuItemHandler;
 
     private final String TAG = "PhotosFragment";
+    private final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private FragmentPhotosBinding binding;
     private Menu menu;
     private PhotoService photoService;
     private Context context;
     private PhotosRecyclerAdapter adapter;
-
-    public class MyReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d("PhotosFragment", "Received broadcast");
-
-            photosViewModel.AddPhotos(photoService.photos);
-
-            if (adapter == null) {
-                initializeRecyclerView();
-            }
-        }
-    }
+    private boolean isBound = false;
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         if (!(context instanceof IMenuItemHandler)) return;
 
-        handler = (IMenuItemHandler) context;
-        handler.setOnMenuItemClickListener(item -> {
+        menuItemHandler = (IMenuItemHandler) context;
+        menuItemHandler.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.share) {
                 sharePhotos();
                 return true;
@@ -73,12 +61,10 @@ public class PhotosFragment extends Fragment {
         });
     }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = getContext();
-
 
         ServiceConnection connection = new ServiceConnection() {
             @Override
@@ -86,28 +72,19 @@ public class PhotosFragment extends Fragment {
                 PhotoService.LocalBinder binder = (PhotoService.LocalBinder) service;
                 photoService = binder.getService();
 
+                photoService.registerPhotoLoadedCallback(photos ->
+                        threadHandler.post(() -> loadPhotos(photos)));
+
+                isBound = true;
                 Log.d(TAG, "Service connected");
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
+                isBound = false;
                 Log.d(TAG, "Service disconnected");
             }
         };
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(
-                    new MyReceiver(),
-                    new IntentFilter(PhotoService.ACTION_GET_LOCAL_PHOTOS),
-                    Context.RECEIVER_NOT_EXPORTED
-            );
-        } else {
-            context.registerReceiver(
-                    new MyReceiver(),
-                    new IntentFilter(PhotoService.ACTION_GET_LOCAL_PHOTOS)
-            );
-        }
-
         context.bindService(new Intent(context, PhotoService.class), connection,
                 Context.BIND_AUTO_CREATE);
 
@@ -161,13 +138,13 @@ public class PhotosFragment extends Fragment {
     }
 
     public void displayShareOptionItem() {
-        handler.getMenu().findItem(R.id.share)
+        menuItemHandler.getMenu().findItem(R.id.share)
                 .setVisible(true)
                 .setEnabled(true);
     }
 
     public void hideShareOptionItem() {
-        handler.getMenu().findItem(R.id.share)
+        menuItemHandler.getMenu().findItem(R.id.share)
                 .setVisible(false)
                 .setEnabled(false);
     }
@@ -202,7 +179,11 @@ public class PhotosFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void upLoadToFirebase() {
+    private void loadPhotos(ArrayList<Photo> photos) {
+        photosViewModel.AddPhotos(photos);
 
+        if (adapter == null) {
+            initializeRecyclerView();
+        }
     }
 }
