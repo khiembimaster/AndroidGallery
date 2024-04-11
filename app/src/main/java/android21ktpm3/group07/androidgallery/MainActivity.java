@@ -40,6 +40,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 
+import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
 import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
 
@@ -260,4 +261,9 @@ public class MainActivity extends AppCompatActivity implements
         return UserViewModel;
     }
 
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+    }
 }

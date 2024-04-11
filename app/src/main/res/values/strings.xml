@@ -61,4 +61,5 @@
     <string name="secondary_text">Guest</string>
     <string name="sub_text">Please sign in to use this feature</string>
     <string name="searchbar_hint">type some thing here</string>
+    <string name="cancel_backup">Cancel backup</string>
 </resources>

@@ -1,58 +1,33 @@
 package android21ktpm3.group07.androidgallery;
 
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.lifecycle.SavedStateViewModelFactory;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.work.Constraints;
-import androidx.work.Data;
-import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
-import androidx.work.WorkRequest;
+import androidx.work.WorkQuery;
+import androidx.work.Worker;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageException;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.label.ImageLabel;
-import com.google.mlkit.vision.label.ImageLabeler;
-import com.google.mlkit.vision.label.ImageLabeling;
-import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
+import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
+import android21ktpm3.group07.androidgallery.Workers.PrepareBackupWorker;
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
-import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
     private static final String TAG = "BottomSheetFragment";
@@ -84,41 +59,64 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                     + " must implement OnBottomSheetItemClickListener");
         }
 
-        ProgressBar progressBar = binding.progressBar;
+        ProgressBar pbSignIn = binding.pbSignIn;
+        ProgressBar pbBackup = binding.pbBackup;
         Button btnBackupData = binding.btnBackupData;
         Button btnLogout = binding.btnLogout;
         Button btnSignInWithGoogle = binding.btnSignInWithGoogle;
+        TextView totalImages = binding.totalImages;
         UserViewModel.getCanUpload().observe(getViewLifecycleOwner(), btnBackupData::setEnabled);
         UserViewModel.getCanSignIn().observe(getViewLifecycleOwner(), btnSignInWithGoogle::setEnabled);
         UserViewModel.getCanLogOut().observe(getViewLifecycleOwner(), btnLogout::setEnabled);
         UserViewModel.getFirebaseUser().observe(getViewLifecycleOwner(), this::showUserInfo);
-        UserViewModel.getIsProcessing().observe(getViewLifecycleOwner(), progressBar::setIndeterminate);
+        UserViewModel.getIsSignInProcessing().observe(getViewLifecycleOwner(), pbSignIn::setIndeterminate);
+        UserViewModel.getIsBackupProcessing().observe(getViewLifecycleOwner(), pbBackup::setIndeterminate);
 
+        UserViewModel.getTotalImagesLeft().observe(getViewLifecycleOwner(), count -> {
+            totalImages.setText(String.format(Locale.ENGLISH,"%d images left", count));
+        });
+        WorkManager workManager = WorkManager
+                .getInstance(requireContext());
+
+
+        if(!workManager.getWorkInfosForUniqueWork("startBackup").isDone()){
+            workManager.getWorkInfosForUniqueWorkLiveData("startBackup").observe(getViewLifecycleOwner(), workInfos -> {
+                if(workInfos != null && !workInfos.isEmpty()){
+                    WorkInfo workInfo = workInfos.get(0);
+                    UserViewModel.setIsBackupProcessing(true);
+                    UserViewModel.setCanUpload(false);
+                    updateProgress(workInfo);
+                }
+            });
+        }else {
+            UserViewModel.setIsBackupProcessing(false);
+        }
+
+        OneTimeWorkRequest prepareWorkRequest = new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
+                .build();
+        OneTimeWorkRequest uploadWorkRequest = new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
+                .build();
+        workManager.getWorkInfoByIdLiveData(uploadWorkRequest.getId())
+                .observe(this, workInfo -> {
+                    if (workInfo != null) {
+                        updateProgress(workInfo);
+                    }
+                });
         binding.btnBackupData.setOnClickListener(v -> {
-            UserViewModel.setIsProcessing(true);
-            UserViewModel.setCanUpload(false);
+            workManager.enqueueUniqueWork("prepareBackup", ExistingWorkPolicy.REPLACE, prepareWorkRequest);
+            workManager.enqueueUniqueWork("startBackup", ExistingWorkPolicy.REPLACE, uploadWorkRequest);
+        });
 
-//            PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(PhotoUploadWorker.class, 24, TimeUnit.HOURS)
-//                        .setConstraints(new Constraints.Builder()
-//                            .setRequiresCharging(true)
-//                            .build())
-//                    .build();
-//            WorkManager
-//                    .getInstance(requireContext())
-//                    .enqueueUniquePeriodicWork("sendLogs", ExistingPeriodicWorkPolicy.KEEP, workRequest);
-              WorkRequest workRequest = new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
-                      .build();
-            WorkManager
-                    .getInstance(requireContext())
-                    .enqueue(workRequest);
-         });
+
+
         binding.btnLogout.setOnClickListener(v -> {
+            UserViewModel.setCanLogOut(false);
+            UserViewModel.setIsSignInProcessing(false);
             listener.onBottomSheetItemClick("logout");
         });
         binding.btnSignInWithGoogle.setOnClickListener(v -> {
             UserViewModel.setCanSignIn(false);
-            UserViewModel.setIsProcessing(true);
-            binding.progressBar.setVisibility(View.VISIBLE);
+            UserViewModel.setIsSignInProcessing(true);
             listener.onBottomSheetItemClick("signInWithGoogle");
         });
 
@@ -130,8 +128,36 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
     public void onStart() {
         super.onStart();
         FirebaseAuth auth = FirebaseAuth.getInstance();
-        if(auth.getCurrentUser() != null){
-            showUserInfo(auth.getCurrentUser());
+        showUserInfo(auth.getCurrentUser());
+    }
+
+    private void updateProgress(WorkInfo workInfo) {
+        if (workInfo != null) {
+            // Update your UI with progress here
+            switch (workInfo.getState()){
+                case ENQUEUED:
+                    UserViewModel.setIsBackupProcessing(true);
+                    UserViewModel.setCanUpload(false);
+                    break;
+                case RUNNING:
+                    if (workInfo.getProgress() != null && workInfo.getProgress().getKeyValueMap().containsKey("total_count")) {
+                        long progress = workInfo.getProgress().getLong("total_count", 0);
+                        // Update your UI with progress here
+                        UserViewModel.setTotalImagesLeft(progress);
+
+                    }
+                    break;
+                case SUCCEEDED:
+                    UserViewModel.setIsBackupProcessing(false);
+                    UserViewModel.setCanUpload(true);
+                    long progress = workInfo.getOutputData().getLong("total_count", 0);
+                    UserViewModel.setTotalImagesLeft(progress);
+                    break;
+                case FAILED:
+                    UserViewModel.setIsBackupProcessing(false);
+                    UserViewModel.setCanUpload(true);
+                    break;
+            }
         }
     }
 
@@ -146,10 +172,16 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
             return;
         };
 
+        if(Boolean.TRUE.equals(UserViewModel.getIsSignInProcessing().getValue())) {
+            UserViewModel.setIsSignInProcessing(false);
+        }
+        if(Boolean.TRUE.equals(UserViewModel.getIsBackupProcessing().getValue())) {
+            UserViewModel.setIsBackupProcessing(false);
+        }
+
         UserViewModel.setCanLogOut(true);
         UserViewModel.setCanSignIn(false);
         UserViewModel.setCanUpload(true);
-        UserViewModel.setIsProcessing(false);
 
         Glide.with(this)
                 .load(user.getPhotoUrl())
