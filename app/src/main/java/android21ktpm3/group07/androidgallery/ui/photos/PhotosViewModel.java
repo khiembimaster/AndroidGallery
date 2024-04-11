@@ -1,6 +1,5 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
@@ -11,8 +10,6 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 public class PhotosViewModel extends ViewModel {
     private final List<Photo> photos = new ArrayList<>();
     private final List<Photo> selectedPhotos = new ArrayList<>();
-
-    private MutableLiveData<List<Photo>> photosLiveData = new MutableLiveData<>();
 
     // TODO: Switch to DI, create factory
     public PhotosViewModel() {
@@ -36,5 +33,11 @@ public class PhotosViewModel extends ViewModel {
 
     public void AddPhotos(List<Photo> photoList) {
         photos.addAll(photoList);
+    }
+
+    public void test() {
+        photos.get(0).setRemoteUrl("something");
+
+
     }
 }

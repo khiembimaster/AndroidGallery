@@ -6,6 +6,7 @@
         android:title="@string/title_create"
         android:contentDescription="@string/content_description_create"
         android:icon="@drawable/add_fill1_wght500_grad200_opsz24"
+        android:iconTint="?android:attr/colorControlNormal"
         app:showAsAction="ifRoom" />
 
     <item

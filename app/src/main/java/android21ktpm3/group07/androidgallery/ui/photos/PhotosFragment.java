@@ -56,6 +56,8 @@ public class PhotosFragment extends Fragment {
             if (item.getItemId() == R.id.share) {
                 sharePhotos();
                 return true;
+            } else if (item.getItemId() == R.id.create_new) {
+                photosViewModel.test();
             }
             return false;
         });
@@ -112,10 +114,6 @@ public class PhotosFragment extends Fragment {
         binding.recyclerView.setAdapter(null);
         binding = null;
         super.onDestroyView();
-    }
-
-    public void initData() {
-        photoService.getLocalPhotos();
     }
 
     private void initializeRecyclerView() {

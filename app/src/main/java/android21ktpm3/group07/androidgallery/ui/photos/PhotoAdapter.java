@@ -31,6 +31,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     public class ViewHolder extends RecyclerView.ViewHolder {
         private final ImageView imageView;
         private final ImageView selectedIcon;
+        private final ImageView syncedIcon;
         private final Animation scaleDown;
         private final Animation scaleUp;
         Boolean isSelected = false;
@@ -40,6 +41,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 
             imageView = itemView.findViewById(R.id.imageView);
             selectedIcon = itemView.findViewById(R.id.selectedIcon);
+            syncedIcon = itemView.findViewById(R.id.syncedIcon);
 
 
             scaleDown = AnimationUtils.loadAnimation(context, R.anim.scale_down);
@@ -65,6 +67,10 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         // TODO: change this later to use other type of resources
         Photo photo = photos.get(position);
 
+        if (photo.getRemoteUrl() == null) {
+            holder.syncedIcon.setVisibility(View.VISIBLE);
+        }
+
         Glide.with(context)
                 .load(photo.getPath())
                 .sizeMultiplier(0.5f)
@@ -72,7 +78,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 .centerCrop()
                 .placeholder(R.drawable.image_fill1_wght500_grad200_opsz24)
                 .into(holder.imageView);
-        
+
         // TODO: extend onLongClick to turn into selection mode that allows to choose more image
         //  and replace bottom navbar with a bottom sheet that contains images management
         //  features(remove, create collection);

@@ -23,6 +23,7 @@ public class Photo implements Parcelable {
 
     private boolean isLoading = false;
 
+    private String remoteUrl = null;
 
     public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
                  double fizeSize) {
@@ -92,6 +93,14 @@ public class Photo implements Parcelable {
 
     public void setLoading(boolean loading) {
         isLoading = loading;
+    }
+
+    public String getRemoteUrl() {
+        return remoteUrl;
+    }
+
+    public void setRemoteUrl(String remoteUrl) {
+        this.remoteUrl = remoteUrl;
     }
 
     @Override

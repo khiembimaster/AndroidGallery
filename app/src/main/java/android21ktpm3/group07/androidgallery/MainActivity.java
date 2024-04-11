@@ -30,11 +30,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
@@ -50,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
     private PhotoService photoService;
     private boolean serviceBound = false;
     private boolean permissionsGranted = false;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // Firebase --------------------------------
     private FirebaseAuth auth;
@@ -81,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
 
                 serviceBound = true;
                 doWhenServiceBoundAndPermissionsGranted();
+                doWhenServiceBound();
                 Log.d(TAG, "Service connected");
             }
 
@@ -130,15 +136,33 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
                                         Log.d("MainActivity", "signInWithCredential:success");
                                         FirebaseUser user = auth.getCurrentUser();
 
-                                        Map<String, ArrayList<String>> data = new HashMap<>();
-                                        data.put("images", new ArrayList<>());
+                                        // Map<String, ArrayList<String>> data = new HashMap<>();
+                                        // data.put("images", new ArrayList<>());
+                                        //
+                                        // db.collection("users").document(user.getUid()).set(data)
+                                        //         .addOnSuccessListener(aVoid -> Log.d(TAG,
+                                        //                 "DocumentSnapshot successfully
+                                        //                 written!"))
+                                        //         .addOnFailureListener(e -> Log.w(TAG, "Error " +
+                                        //                 "writing document", e));
 
-                                        db.collection("users").document(user.getUid()).set(data)
-                                                .addOnSuccessListener(aVoid -> Log.d(TAG,
-                                                        "DocumentSnapshot successfully written!"))
-                                                .addOnFailureListener(e -> Log.w(TAG, "Error " +
-                                                        "writing document", e));
+                                        //  TODO Is executing this in a separate thread necessary?
+                                        executor.execute(() -> {
+                                            Map<String, Object> data = new HashMap<>();
+                                            data.put("images", new ArrayList<>());
+
+                                            db.collection("users").document(user.getUid())
+                                                    .set(data, SetOptions.merge())
+                                                    .addOnSuccessListener(aVoid -> Log.d(TAG,
+                                                            "DocumentSnapshot successfully " +
+                                                                    "written!"))
+                                                    .addOnFailureListener(e -> Log.w(TAG, "Error " +
+                                                            "writing " +
+                                                            "document", e));
+                                        });
+
                                         updateUI(user);
+                                        doWhenServiceBound();
                                     } else {
                                         // If sign in fails, display a message to the user.
                                         Log.w("MainActivity", "signInWithCredential:failure",
@@ -167,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
 
         FirebaseUser currentUser = auth.getCurrentUser();
         updateUI(currentUser);
+        doWhenServiceBound();
 
         this.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.account) {
@@ -269,9 +294,18 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         bottomSheetFragment.show(getSupportFragmentManager(), bottomSheetFragment.getTag());
     }
 
+    // TODO: Any way to ensure service is started and bound before calling it?
     private void doWhenServiceBoundAndPermissionsGranted() {
         if (!serviceBound || !permissionsGranted) return;
 
         photoService.getLocalPhotos();
+    }
+
+    private void doWhenServiceBound() {
+        if (!serviceBound) return;
+
+        photoService.setFirebaseUser(auth.getCurrentUser());
+        // photoService.test();
+        photoService.getRemotePhotos();
     }
 }

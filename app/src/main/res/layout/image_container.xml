@@ -6,7 +6,7 @@
     android:layout_margin="2dp">
 
     <View
-		android:id="@+id/selection_overlay"
+        android:id="@+id/selection_overlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@color/md_theme_inversePrimary_highContrast"
@@ -35,5 +35,16 @@
         android:src="@drawable/check_circle_fill1_wght500_grad0_opsz24"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:layout_margin="4dp"
+        android:id="@+id/syncedIcon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:src="@drawable/outline_cloud_done_24"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

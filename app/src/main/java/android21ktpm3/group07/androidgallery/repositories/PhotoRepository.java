@@ -9,21 +9,29 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
+import android21ktpm3.group07.androidgallery.models.remote.UserDocument;
 
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
@@ -227,8 +235,80 @@ public class PhotoRepository {
         this.user = user;
     }
 
+    public ArrayList<PhotoDetails> getAllRemotePhotos() {
+        if (user == null) {
+            Log.d(TAG, "User is null");
+            return new ArrayList<>();
+        }
+
+        ArrayList<PhotoDetails> result = new ArrayList<>();
+
+        db.collection("users").document(user.getUid()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
+                        if (userDocument == null) {
+                            Log.e(TAG, "User document is null");
+                            return;
+                        }
+
+                        result.addAll(userDocument.photos);
+                    }
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting remote photos", e);
+                });
+
+        return result;
+    }
+
     public void test() {
         if (user == null) return;
 
+        ArrayList<Photo> photos = GetAllPhotos();
+
+
+        int count = 0;
+        for (Photo photo : photos) {
+            if (count == 10) break;
+
+            Uri file = Uri.fromFile(new File(photo.getPath()));
+            String fileName = file.getLastPathSegment();
+
+            StorageReference imageRef = storage.getReference()
+                    .child("user")
+                    .child(user.getUid())
+                    .child(System.currentTimeMillis() + "-" + fileName);
+
+            UploadTask uploadTask = imageRef.putFile(file);
+            uploadTask.addOnFailureListener(e -> {
+                Log.e(TAG, "Error uploading image: " + fileName, e);
+            }).addOnPausedListener(taskSnapshot -> {
+                Log.d(TAG, "Upload is paused: " + fileName);
+            });
+
+            Task<Uri> getUrlTask = uploadTask.continueWithTask(task -> {
+                if (!task.isSuccessful())
+                    throw Objects.requireNonNull(task.getException());
+
+                return imageRef.getDownloadUrl();
+            }).addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    Uri downloadUri = task.getResult();
+                    Map<String, String> data = new HashMap<>();
+                    data.put("local", photo.getPath());
+                    data.put("remote", downloadUri.toString());
+
+                    db.collection("users").document(user.getUid())
+                            .update("images", FieldValue.arrayUnion(data))
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error storing image URL: " + fileName, e);
+                            });
+                } else {
+                    Log.e(TAG, "Error getting image URL: " + fileName, task.getException());
+                }
+            });
+
+            count += 1;
+        }
     }
 }

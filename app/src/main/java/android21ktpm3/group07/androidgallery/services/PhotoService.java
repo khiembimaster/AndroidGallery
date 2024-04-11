@@ -19,17 +19,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class PhotoService extends Service {
-    public ArrayList<Photo> photos;
-
     private final String TAG = this.getClass().getSimpleName();
     private final IBinder binder = new LocalBinder();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final PhotoRepository photoRepository = new PhotoRepository(this);
 
-    private PhotoLoadedCallback photoLoadedCallback;
+    private LocalPhotosLoadedCallback localPhotosLoadedCallback;
+    private RemotePhotosLoadedCallback remotePhotosLoadedCallback;
 
     public class LocalBinder extends Binder {
         public PhotoService getService() {
@@ -51,18 +51,33 @@ public class PhotoService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
     }
 
-    public void registerPhotoLoadedCallback(PhotoLoadedCallback callback) {
-        photoLoadedCallback = callback;
+    public void registerPhotoLoadedCallback(LocalPhotosLoadedCallback callback) {
+        localPhotosLoadedCallback = callback;
     }
 
     public void getLocalPhotos() {
-        executor.execute(this::getLocalPhotosFunc);
+        executor.execute(() -> {
+            ArrayList<Photo> photos = photoRepository.GetAllPhotos();
+            Log.d("PhotoService", "Getting local photos: " + photos.size());
+
+            if (localPhotosLoadedCallback != null)
+                localPhotosLoadedCallback.onCompleted(photos);
+        });
+    }
+
+    public void getRemotePhotos() {
+        executor.execute(() -> {
+            ArrayList<PhotoDetails> photos = photoRepository.getAllRemotePhotos();
+            Log.d("PhotoService", "Getting remote photos: " + photos.size());
+
+            if (remotePhotosLoadedCallback != null)
+                remotePhotosLoadedCallback.onCompleted(photos);
+        });
     }
 
     public void setFirebaseUser(FirebaseUser user) {
@@ -70,28 +85,19 @@ public class PhotoService extends Service {
     }
 
     public void test() {
-        photoRepository.test();
-    }
-
-    private void getLocalPhotosFunc() {
-        photos = photoRepository.GetAllPhotos();
-        Log.d("PhotoService", "Getting local photos: " + photos.size());
-        // Intent intent = new Intent(ACTION_GET_LOCAL_PHOTOS);
-        // localBroadcastManager.sendBroadcast(intent);
-
-        photoLoadedCallback.onCompleted(photos);
-    }
-
-    private ArrayList<Photo> getRemotePhotos() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        executor.execute(photoRepository::test);
     }
 
     private void syncPhotos() {
 
     }
 
-    public interface PhotoLoadedCallback {
+    public interface LocalPhotosLoadedCallback {
         void onCompleted(ArrayList<Photo> photos);
+    }
+
+    public interface RemotePhotosLoadedCallback {
+        void onCompleted(ArrayList<PhotoDetails> photos);
     }
 
     public class MyReceiver extends BroadcastReceiver {
