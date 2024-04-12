@@ -2,140 +2,210 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.content.Context;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.databinding.BindingAdapter;
+import androidx.databinding.DataBindingUtil;
+import androidx.databinding.ObservableList;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import android21ktpm3.group07.androidgallery.BR;
 import android21ktpm3.group07.androidgallery.R;
+import android21ktpm3.group07.androidgallery.databinding.ImagesByDateLayoutBinding;
 import android21ktpm3.group07.androidgallery.helpers.DateHelper;
 import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.models.PhotoGroup;
 
 public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAdapter.ViewHolder> {
     private final Context context;
-    private final List<Photo> photos;
-    private List<Item> groupedPhotos;
+    private final List<Item> items;
+
     private int imagesPerRow = 4;
+    private int selectedCount = 0;
+    private PhotoAdapter.ItemActionCallback childItemActionCallback;
+    private final PhotoAdapter.SelectingModeCallback selectingModeCallback;
+    private SelectingModeDisplayingCallback selectingModeDisplayingCallback;
 
-    @Nullable
-    public PhotoAdapter.OnItemSelectedListener childSelectedCB;
-    @Nullable
-    public PhotoAdapter.OnItemUnselectedListener childUnselectedCB;
-    public PhotoAdapter.OnItemViewListener childViewCB;
-
-    public PhotosRecyclerAdapter(Context context, List<Photo> photos) {
+    public PhotosRecyclerAdapter(Context context, ObservableList<PhotoGroup> photoGroups) {
         this.context = context;
-        this.photos = photos;
+        this.items = photoGroups.stream()
+                .map(Item::new)
+                .collect(Collectors.toList());
 
-        groupPhotosByDate();
+        selectingModeCallback = new PhotoAdapter.SelectingModeCallback() {
+            @Override
+            public boolean isInSelectingMode() {
+                return selectedCount > 0;
+            }
+
+            @Override
+            public void onAddItem() {
+                selectedCount++;
+
+                if (selectedCount == 1 && selectingModeDisplayingCallback != null) {
+                    selectingModeDisplayingCallback.onEnter();
+                }
+            }
+
+            @Override
+            public void onRemoveItem() {
+                selectedCount--;
+
+                if (selectedCount == 0 && selectingModeDisplayingCallback != null) {
+                    selectingModeDisplayingCallback.onExit();
+                }
+            }
+        };
+
+        photoGroups.addOnListChangedCallback(new ObservableList.OnListChangedCallback<ObservableList<PhotoGroup>>() {
+            @Override
+            public void onChanged(ObservableList<PhotoGroup> sender) {
+                // items = sender.stream()
+                //         .map(Item::new)
+                //         .collect(Collectors.toList());
+                // notifyDataSetChanged();
+
+                throw new UnsupportedOperationException("not implemented");
+            }
+
+            @Override
+            public void onItemRangeChanged(
+                    ObservableList<PhotoGroup> sender, int positionStart, int itemCount
+            ) {
+                notifyItemRangeChanged(positionStart, itemCount);
+            }
+
+            @Override
+            public void onItemRangeInserted(ObservableList<PhotoGroup> sender, int positionStart,
+                                            int itemCount) {
+                items.addAll(
+                        positionStart,
+                        sender.subList(positionStart, positionStart + itemCount)
+                                .stream()
+                                .map(Item::new)
+                                .collect(Collectors.toList())
+                );
+
+                notifyItemRangeInserted(positionStart, itemCount);
+            }
+
+            @Override
+            public void onItemRangeMoved(ObservableList<PhotoGroup> sender, int fromPosition,
+                                         int toPosition, int itemCount) {
+                Collections.swap(items, fromPosition, toPosition);
+                notifyItemMoved(fromPosition, toPosition);
+            }
+
+            @Override
+            public void onItemRangeRemoved(ObservableList<PhotoGroup> sender, int positionStart,
+                                           int itemCount) {
+                // TODO Check if there is any memory leak
+                items.subList(positionStart, positionStart + itemCount).clear();
+
+                notifyItemRangeRemoved(positionStart, itemCount);
+            }
+        });
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-        private final TextView dateText;
-        private final RecyclerView innerRecyclerView;
-
-        public ViewHolder(@NonNull View itemView) {
-            super(itemView);
-
-            dateText = itemView.findViewById(R.id.date_text);
-            innerRecyclerView = itemView.findViewById(R.id.image_by_date_recycler_view);
-
-            // Flexbox won't display all images: https://github.com/google/flexbox-layout/issues/420
-            // FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(context);
-            // layoutManager.setFlexDirection(FlexDirection.ROW);
-
-            GridLayoutManager layoutManager = new GridLayoutManager(context, imagesPerRow);
-            // LinearLayoutManager layoutManager = new LinearLayoutManager(context,
-            //         LinearLayoutManager.VERTICAL, false);
-
-            innerRecyclerView.setLayoutManager(layoutManager);
-        }
+    public void setChildItemActionCallback(PhotoAdapter.ItemActionCallback callback) {
+        this.childItemActionCallback = callback;
     }
 
-    public void setChildItemSelectedListener(PhotoAdapter.OnItemSelectedListener cb) {
-        childSelectedCB = cb;
+    public void setSelectingModeDisplayingCallback(SelectingModeDisplayingCallback callback) {
+        this.selectingModeDisplayingCallback = callback;
     }
 
-    public void setChildItemUnselectedListener(PhotoAdapter.OnItemUnselectedListener cb) {
-        childUnselectedCB = cb;
-    }
-
-    public void setChildItemViewListener(PhotoAdapter.OnItemViewListener cb) {
-        childViewCB = cb;
+    public List<Photo> getSelectedPhotos() {
+        return items.stream()
+                .map(item -> item.adapter.getSelectedPhoto())
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View recylerView = inflater.inflate(R.layout.images_by_date_layout, parent, false);
+        ImagesByDateLayoutBinding binding = DataBindingUtil.inflate(
+                inflater, R.layout.images_by_date_layout, parent, false
+        );
 
-        return new ViewHolder(recylerView);
+        return new ViewHolder(binding);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Item cur = groupedPhotos.get(position);
+        Item cur = items.get(position);
 
-        holder.dateText.setText(DateHelper.formatDate(cur.date, "dd/MM/yyyy"));
+        holder.bind(cur.photoGroup);
 
         if (cur.adapter == null) {
-            PhotoAdapter adapter = new PhotoAdapter(context, cur.photos);
-            adapter.setOnItemSelectedListener(childSelectedCB);
-            adapter.setOnItemUnselectedListener(childUnselectedCB);
-            adapter.setOnItemViewListener(childViewCB);
-
+            PhotoAdapter adapter = new PhotoAdapter(context, cur.photoGroup.getPhotos());
+            adapter.setIsInSelectingModeCallback(selectingModeCallback);
+            adapter.setItemActionCallback(childItemActionCallback);
             cur.adapter = adapter;
         }
 
-        holder.innerRecyclerView.setAdapter(cur.adapter);
-
-        // PhotoAdapter adapter = new PhotoAdapter(context, cur.photos);
-        // adapter.setOnItemSelectedListener(childSelectedCB);
-        // adapter.setOnItemUnselectedListener(childUnselectedCB);
-        // adapter.setOnItemViewListener(childViewCB);
-        // holder.innerRecyclerView.setAdapter(adapter);
+        holder.binding.imageByDateRecyclerView.setAdapter(cur.adapter);
     }
 
     @Override
     public void onViewRecycled(@NonNull ViewHolder holder) {
-        holder.innerRecyclerView.setAdapter(null);
+        holder.binding.imageByDateRecyclerView.setAdapter(null);
         super.onViewRecycled(holder);
     }
 
     @Override
     public int getItemCount() {
-        return groupedPhotos.size();
+        return items.size();
     }
 
-    private void groupPhotosByDate() {
-        groupedPhotos = photos.stream()
-                .sorted((photo1, photo2) -> Long.compare(
-                        photo2.getRepresentativeEpoch(),
-                        photo1.getRepresentativeEpoch()))
-                .collect(Collectors.groupingBy(Photo::getRepresentativeDate))
-                .entrySet().stream()
-                .sorted((entry1, entry2) -> entry2.getKey().compareTo(entry1.getKey()))
-                .map(entry -> new Item(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+    @BindingAdapter("android:text")
+    public static void setLocalDate(TextView tv, LocalDate date) {
+        tv.setText(DateHelper.formatDate(date, "dd/MM/yyyy"));
+    }
+
+    public interface SelectingModeDisplayingCallback {
+        void onExit();
+
+        void onEnter();
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        private final ImagesByDateLayoutBinding binding;
+
+        public ViewHolder(@NonNull ImagesByDateLayoutBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+
+            // Flexbox won't display all images: https://github.com/google/flexbox-layout/issues/420
+            // FlexboxLayoutManager layoutManager = new FlexboxLayoutManager(context);
+            // layoutManager.setFlexDirection(FlexDirection.ROW);
+
+            GridLayoutManager layoutManager = new GridLayoutManager(context, imagesPerRow);
+            binding.imageByDateRecyclerView.setLayoutManager(layoutManager);
+        }
+
+        public void bind(PhotoGroup photoGroup) {
+            binding.setVariable(BR.photoGroup, photoGroup);
+            binding.executePendingBindings();
+        }
     }
 
     private static class Item {
-        public LocalDate date;
-        public List<Photo> photos;
-        public PhotoAdapter adapter;
+        PhotoAdapter adapter;
+        PhotoGroup photoGroup;
 
-        public Item(LocalDate date, List<Photo> photos) {
-            this.date = date;
-            this.photos = photos;
+        Item(PhotoGroup photoGroup) {
+            this.photoGroup = photoGroup;
         }
     }
 }

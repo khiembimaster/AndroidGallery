@@ -23,7 +23,6 @@ import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
 import com.google.android.gms.auth.api.identity.SignInCredential;
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
@@ -41,12 +40,11 @@ import java.util.concurrent.Executors;
 
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
-import android21ktpm3.group07.androidgallery.ui.photos.PhotoAdapter;
 
 public class MainActivity extends AppCompatActivity implements IMenuItemHandler {
-    public PhotoAdapter.OnItemSelectedListener childSelectedCB;
-
-    private MaterialToolbar.OnMenuItemClickListener onMenuItemClickListener;
+    private OnMenuItemClickListener onAccountItemClickListener;
+    private OnMenuItemClickListener onCreateNewItemClickListener;
+    private OnMenuItemClickListener onShareItemClickListener;
     private ActivityMainBinding binding;
     private BottomSheetBehavior bottomSheetBehavior;
 
@@ -174,9 +172,19 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
                 });
 
         binding.materialToolbar.setOnMenuItemClickListener(item -> {
-            if (onMenuItemClickListener != null) {
-                return onMenuItemClickListener.onMenuItemClick(item);
+            if (item.getItemId() == R.id.account) {
+                if (showOneTapUI) {
+                    signIn();
+                } else toggleBottomSheet();
+                return true;
+            } else if (item.getItemId() == R.id.create_new) {
+                onCreateNewItemClickListener.onClicked();
+                return true;
+            } else if (item.getItemId() == R.id.share) {
+                onShareItemClickListener.onClicked();
+                return true;
             }
+
             return false;
         });
 
@@ -192,25 +200,21 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
         FirebaseUser currentUser = auth.getCurrentUser();
         updateUI(currentUser);
         doWhenServiceBound();
-
-        this.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.account) {
-                if (showOneTapUI) {
-                    signIn();
-                } else toggleBottomSheet();
-                return true;
-            }
-
-            return false;
-        });
     }
 
     @Override
-    public void setOnMenuItemClickListener(MaterialToolbar.OnMenuItemClickListener listener) {
-        onMenuItemClickListener = listener;
-        if (binding != null) {
-            binding.materialToolbar.setOnMenuItemClickListener(listener);
-        }
+    public void setOnAccountItemClickListener(OnMenuItemClickListener onAccountItemClickListener) {
+        this.onAccountItemClickListener = onAccountItemClickListener;
+    }
+
+    @Override
+    public void setOnCreateNewItemClickListener(OnMenuItemClickListener onCreateNewItemClickListener) {
+        this.onCreateNewItemClickListener = onCreateNewItemClickListener;
+    }
+
+    @Override
+    public void setOnShareItemClickListener(OnMenuItemClickListener onShareItemClickListener) {
+        this.onShareItemClickListener = onShareItemClickListener;
     }
 
     @Override
@@ -306,6 +310,6 @@ public class MainActivity extends AppCompatActivity implements IMenuItemHandler 
 
         photoService.setFirebaseUser(auth.getCurrentUser());
         // photoService.test();
-        photoService.getRemotePhotos();
+        // photoService.getRemotePhotos();
     }
 }

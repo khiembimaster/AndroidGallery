@@ -52,15 +52,8 @@ public class PhotosFragment extends Fragment {
         if (!(context instanceof IMenuItemHandler)) return;
 
         menuItemHandler = (IMenuItemHandler) context;
-        menuItemHandler.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.share) {
-                sharePhotos();
-                return true;
-            } else if (item.getItemId() == R.id.create_new) {
-                photosViewModel.test();
-            }
-            return false;
-        });
+        menuItemHandler.setOnShareItemClickListener(this::sharePhotos);
+        menuItemHandler.setOnCreateNewItemClickListener(() -> photosViewModel.test());
     }
 
     @Override
@@ -119,19 +112,39 @@ public class PhotosFragment extends Fragment {
     private void initializeRecyclerView() {
         adapter = new PhotosRecyclerAdapter(
                 context,
-                photosViewModel.getPhotos()
+                photosViewModel.getPhotoGroups()
         );
-        adapter.setChildItemSelectedListener(photo -> {
-            displayShareOptionItem();
-            photosViewModel.addToSelectedPhotos(photo);
-        });
-        adapter.setChildItemUnselectedListener(photo -> {
-            photosViewModel.removeFromSelectedPhotos(photo);
-            if (photosViewModel.getSelectedPhotos().isEmpty()) {
-                hideShareOptionItem();
+
+        adapter.setChildItemActionCallback(new PhotoAdapter.ItemActionCallback() {
+            @Override
+            public void onItemSelect(Photo photo) {
+                // Toast.makeText(context, "Selected " + photo.getPath(), Toast.LENGTH_SHORT)
+                // .show();
+            }
+
+            @Override
+            public void onItemUnselect(Photo photo) {
+                // Toast.makeText(context, "Unselected " + photo.getPath(), Toast.LENGTH_SHORT)
+                // .show();
+            }
+
+            @Override
+            public void onItemView(Photo photo) {
+                viewPhoto(photo);
             }
         });
-        adapter.setChildItemViewListener(this::viewPhoto);
+        adapter.setSelectingModeDisplayingCallback(new PhotosRecyclerAdapter.SelectingModeDisplayingCallback() {
+            @Override
+            public void onExit() {
+                hideShareOptionItem();
+            }
+
+            @Override
+            public void onEnter() {
+                displayShareOptionItem();
+            }
+        });
+
         binding.recyclerView.setAdapter(adapter);
     }
 
@@ -150,9 +163,10 @@ public class PhotosFragment extends Fragment {
     public void sharePhotos() {
         ArrayList<Uri> imageUris = new ArrayList<>();
 
-        for (Photo photo : photosViewModel.getSelectedPhotos()) {
+        for (Photo photo : adapter.getSelectedPhotos()) {
             File file = new File(photo.getPath());
 
+            // FIXME Find another solution since this doesn't work if the image is in sdcard
             Uri imageUri = getUriForFile(
                     context,
                     "android21ktpm3.group07.androidgallery.fileprovider",

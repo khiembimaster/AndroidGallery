@@ -3,12 +3,16 @@ package android21ktpm3.group07.androidgallery.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.databinding.BaseObservable;
+import androidx.databinding.Bindable;
+
 import java.time.LocalDate;
 import java.util.Objects;
 
+import android21ktpm3.group07.androidgallery.BR;
 import android21ktpm3.group07.androidgallery.helpers.DateHelper;
 
-public class Photo implements Parcelable {
+public class Photo extends BaseObservable implements Parcelable {
     private final String path;
     private final String name;
     private final long modifiedDate;
@@ -22,6 +26,7 @@ public class Photo implements Parcelable {
     private LocalDate representativeDate;
 
     private boolean isLoading = false;
+    private boolean isSelected = false;
 
     private String remoteUrl = null;
 
@@ -95,12 +100,24 @@ public class Photo implements Parcelable {
         isLoading = loading;
     }
 
+    @Bindable
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+        notifyPropertyChanged(BR.selected);
+    }
+
+    @Bindable
     public String getRemoteUrl() {
         return remoteUrl;
     }
 
     public void setRemoteUrl(String remoteUrl) {
         this.remoteUrl = remoteUrl;
+        notifyPropertyChanged(BR.remoteUrl);
     }
 
     @Override
