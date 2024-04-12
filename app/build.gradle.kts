@@ -41,6 +41,9 @@ android {
 dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
+    implementation("androidx.savedstate:savedstate:1.2.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.2")
+
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -54,7 +57,10 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
-
+    // Authentication
+    implementation("androidx.credentials:credentials:1.3.0-alpha02")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0-alpha02")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     // TODO: Add the dependencies for any other Firebase products you want to use
@@ -65,4 +71,9 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
 
+    // Use this dependency to use the dynamically downloaded model in Google Play Services
+    implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime:2.9.0")
 }

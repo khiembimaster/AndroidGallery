@@ -36,7 +36,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
                         android:scaleType="centerCrop"
-                        android:src="@drawable/avatar03"
+                        android:src="@drawable/account_circle_fill1_wght500_grad200_opsz24"
                         />
 
                     <LinearLayout
@@ -58,28 +58,69 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="@string/secondary_text"
+                            android:text="@string/sub_text"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?android:attr/textColorSecondary"
                             />
+
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
+
+            <LinearLayout
+                android:orientation="horizontal"
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.button.MaterialButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Back up your data"
+                    android:id="@+id/btnBackupData"
+                    android:textAlignment="textStart"
+                    android:textAppearance="?attr/textAppearanceButton"
+                    app:icon="@drawable/cloud_sync_fill0_wght400_grad0_opsz24"
+                    style="?attr/borderlessButtonStyle"
+                    />
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/pbBackup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    android:id="@+id/totalImages"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Back up your data"
-                android:id="@+id/btnBackupData"
+                android:text="@string/cancel_backup"
+                android:id="@+id/btnCancelBackup"
                 android:textAlignment="textStart"
                 android:textAppearance="?attr/textAppearanceButton"
-                app:icon="@drawable/cloud_sync_fill0_wght400_grad0_opsz24"
+                app:icon="@drawable/cloud_off_fill0_wght400_grad0_opsz24"
                 style="?attr/borderlessButtonStyle"
                 />
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progressBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+                <com.google.android.material.button.MaterialButton
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sign in with Google"
+                    android:id="@+id/btnSignInWithGoogle"
+                    android:textAlignment="textStart"
+                    android:textAppearance="?attr/textAppearanceButton"
+                    style="?attr/borderlessButtonStyle"
+                    />
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/pbSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:layout_width="match_parent"

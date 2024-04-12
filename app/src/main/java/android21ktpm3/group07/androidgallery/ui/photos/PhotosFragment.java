@@ -36,15 +36,16 @@ import android21ktpm3.group07.androidgallery.services.PhotoService;
 public class PhotosFragment extends Fragment {
     protected PhotosViewModel photosViewModel;
     protected IMenuItemHandler menuItemHandler;
+    protected PhotoService photoService;
 
     private final String TAG = "PhotosFragment";
-    private final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
+    protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private FragmentPhotosBinding binding;
     private Menu menu;
-    private PhotoService photoService;
-    private Context context;
+    protected Context context;
     private PhotosRecyclerAdapter adapter;
-    private boolean isBound = false;
+    protected boolean isBound = false;
+    protected ServiceConnection connection;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -61,7 +62,7 @@ public class PhotosFragment extends Fragment {
         super.onCreate(savedInstanceState);
         context = getContext();
 
-        ServiceConnection connection = new ServiceConnection() {
+        connection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 PhotoService.LocalBinder binder = (PhotoService.LocalBinder) service;
@@ -191,7 +192,7 @@ public class PhotosFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void loadPhotos(ArrayList<Photo> photos) {
+    protected void loadPhotos(ArrayList<Photo> photos) {
         photosViewModel.AddPhotos(photos);
 
         if (adapter == null) {

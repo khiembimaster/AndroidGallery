@@ -1,64 +1,195 @@
 package android21ktpm3.group07.androidgallery;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.model.UrlUriLoader;
-import com.bumptech.glide.request.target.BitmapImageViewTarget;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.ktx.Firebase;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageException;
-import com.google.firebase.storage.StorageMetadata;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
 
+import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
+import android21ktpm3.group07.androidgallery.Workers.PrepareBackupWorker;
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
-import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
     private static final String TAG = "BottomSheetFragment";
-    FragmentBottomSheetBinding binding;
-    FirebaseAuth auth;
+    private UserViewModel UserViewModel;
+    private OnBottomSheetItemClickListener listener;
+    private FragmentBottomSheetBinding binding;
 
-    FirebaseFirestore db = FirebaseFirestore.getInstance();
-    FirebaseStorage storage = FirebaseStorage.getInstance();
-
+    // To use default options:
     public BottomSheetFragment() {
-        // Required empty public constructor
-        this.auth = FirebaseAuth.getInstance();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        Log.d(TAG, "onCreateView: ");
+
         // Inflate the layout for this fragment
         binding = FragmentBottomSheetBinding.inflate(inflater, container, false);
+        View root = binding.getRoot();
 
-        FirebaseUser user = auth.getCurrentUser();
+        if (getContext() instanceof MainActivity) {
+            listener = (OnBottomSheetItemClickListener) getContext();
+            UserViewModel = listener.getUserViewModel();
+        } else {
+            throw new RuntimeException(getContext().toString()
+                    + " must implement OnBottomSheetItemClickListener");
+        }
+
+        ProgressBar pbSignIn = binding.pbSignIn;
+        ProgressBar pbBackup = binding.pbBackup;
+        Button btnBackupData = binding.btnBackupData;
+        Button btnLogout = binding.btnLogout;
+        Button btnSignInWithGoogle = binding.btnSignInWithGoogle;
+        TextView totalImages = binding.totalImages;
+        UserViewModel.getCanUpload().observe(getViewLifecycleOwner(), btnBackupData::setEnabled);
+        UserViewModel.getCanSignIn().observe(getViewLifecycleOwner(),
+                btnSignInWithGoogle::setEnabled);
+        UserViewModel.getCanLogOut().observe(getViewLifecycleOwner(), btnLogout::setEnabled);
+        UserViewModel.getFirebaseUser().observe(getViewLifecycleOwner(), this::showUserInfo);
+        UserViewModel.getIsSignInProcessing().observe(getViewLifecycleOwner(),
+                pbSignIn::setIndeterminate);
+        UserViewModel.getIsBackupProcessing().observe(getViewLifecycleOwner(),
+                pbBackup::setIndeterminate);
+
+        UserViewModel.getTotalImagesLeft().observe(getViewLifecycleOwner(), count -> {
+            totalImages.setText(String.format(Locale.ENGLISH, "%d images left", count));
+        });
+        WorkManager workManager = WorkManager
+                .getInstance(requireContext());
+
+
+        if (!workManager.getWorkInfosForUniqueWork("startBackup").isDone()) {
+            workManager.getWorkInfosForUniqueWorkLiveData("startBackup").observe(getViewLifecycleOwner(), workInfos -> {
+                if (workInfos != null && !workInfos.isEmpty()) {
+                    WorkInfo workInfo = workInfos.get(0);
+                    UserViewModel.setIsBackupProcessing(true);
+                    UserViewModel.setCanUpload(false);
+                    updateProgress(workInfo);
+                }
+            });
+        } else {
+            UserViewModel.setIsBackupProcessing(false);
+        }
+
+        OneTimeWorkRequest prepareWorkRequest =
+                new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
+                        .build();
+        OneTimeWorkRequest uploadWorkRequest =
+                new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
+                        .build();
+        workManager.getWorkInfoByIdLiveData(uploadWorkRequest.getId())
+                .observe(this, workInfo -> {
+                    if (workInfo != null) {
+                        updateProgress(workInfo);
+                    }
+                });
+        binding.btnBackupData.setOnClickListener(v -> {
+            workManager.enqueueUniqueWork("prepareBackup", ExistingWorkPolicy.REPLACE,
+                    prepareWorkRequest);
+            workManager.enqueueUniqueWork("startBackup", ExistingWorkPolicy.REPLACE,
+                    uploadWorkRequest);
+        });
+
+
+        binding.btnLogout.setOnClickListener(v -> {
+            UserViewModel.setCanLogOut(false);
+            UserViewModel.setIsSignInProcessing(false);
+            listener.onBottomSheetItemClick("logout");
+        });
+        binding.btnSignInWithGoogle.setOnClickListener(v -> {
+            UserViewModel.setCanSignIn(false);
+            UserViewModel.setIsSignInProcessing(true);
+            listener.onBottomSheetItemClick("signInWithGoogle");
+        });
+
+
+        return root;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        showUserInfo(auth.getCurrentUser());
+    }
+
+    private void updateProgress(WorkInfo workInfo) {
+        if (workInfo != null) {
+            // Update your UI with progress here
+            switch (workInfo.getState()) {
+                case ENQUEUED:
+                    UserViewModel.setIsBackupProcessing(true);
+                    UserViewModel.setCanUpload(false);
+                    break;
+                case RUNNING:
+                    if (workInfo.getProgress() != null && workInfo.getProgress().getKeyValueMap().containsKey("total_count")) {
+                        long progress = workInfo.getProgress().getLong("total_count", 0);
+                        // Update your UI with progress here
+                        UserViewModel.setTotalImagesLeft(progress);
+
+                    }
+                    break;
+                case SUCCEEDED:
+                    UserViewModel.setIsBackupProcessing(false);
+                    UserViewModel.setCanUpload(true);
+                    long progress = workInfo.getOutputData().getLong("total_count", 0);
+                    UserViewModel.setTotalImagesLeft(progress);
+                    break;
+                case FAILED:
+                    UserViewModel.setIsBackupProcessing(false);
+                    UserViewModel.setCanUpload(true);
+                    break;
+            }
+        }
+    }
+
+    public void showUserInfo(FirebaseUser user) {
+        if (user == null) {
+            binding.imgUserAvatar.setImageResource(R.drawable.account_circle_fill1_wght500_grad200_opsz24);
+            binding.txtDisplayName.setText("Guest");
+            binding.txtUserEmail.setText("Please sign in to use this feature");
+            UserViewModel.setCanLogOut(false);
+            UserViewModel.setCanSignIn(true);
+            UserViewModel.setCanUpload(false);
+            return;
+        }
+        ;
+
+        if (Boolean.TRUE.equals(UserViewModel.getIsSignInProcessing().getValue())) {
+            UserViewModel.setIsSignInProcessing(false);
+        }
+        if (Boolean.TRUE.equals(UserViewModel.getIsBackupProcessing().getValue())) {
+            UserViewModel.setIsBackupProcessing(false);
+        }
+
+        UserViewModel.setCanLogOut(true);
+        UserViewModel.setCanSignIn(false);
+        UserViewModel.setCanUpload(true);
+
         Glide.with(this)
                 .load(user.getPhotoUrl())
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
@@ -66,101 +197,12 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
 
         binding.txtDisplayName.setText(user.getDisplayName());
         binding.txtUserEmail.setText(user.getEmail());
-        binding.btnLogout.setOnClickListener(v -> {
-            auth.signOut();
-            getActivity().finish();
-        });
-        binding.btnBackupData.setOnClickListener(v -> {
-
-            upLoadUserImages(user);
-
-        });
-
-        return binding.getRoot();
     }
 
-    //TODO: Create a service to upload images to Firebase Storage
-    private void upLoadUserImages(FirebaseUser user){
-        if (user == null) return;
+    public interface OnBottomSheetItemClickListener {
+        void onBottomSheetItemClick(String item);
 
-
-        // Load images from local storage
-        PhotoRepository photoRepository = new PhotoRepository(getContext());
-        List<Photo> imageUrls = photoRepository.GetAllPhotos(); //TODO: Load images from local storage
-
-        List<String> downLoadUrls = new ArrayList<>();
-
-        // Load albums
-//        List<Album> loadedalbums = new ArrayList<>();//TODO: Load albums from local storage
-//        Map<String, Object> albums = new HashMap<>();
-//        for(Album album : loadedalbums){
-//            albums.put(album.getName(), album.getPhotos()); //TODO: Create getPhotos() method where it returns a list of photos
-//        }
-
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReference();
-        // Create file metadata including the content type
-        for(Photo photo : imageUrls){
-
-            Uri file = Uri.fromFile(new File(photo.getPath()));
-
-            StorageReference imageRef = storageRef.child("user/"+user.getUid()+"/"+file.getLastPathSegment());
-            // Upload file to Firebase Storage
-            UploadTask uploadTask = imageRef.putFile(file);
-
-            uploadTask.addOnFailureListener(e -> {
-                Log.e(TAG, "Error when upload your images", e);
-                int errorCode = ((StorageException) e).getErrorCode();
-                String errorMessage = e.getMessage();
-            }).addOnSuccessListener(taskSnapshot -> {
-                Log.d(TAG, "Your images stored successfully!");
-                binding.progressBar.setVisibility(View.GONE);
-            }).addOnProgressListener(taskSnapshot -> {
-                binding.progressBar.setVisibility(View.VISIBLE);
-                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-                binding.progressBar.setProgress((int) progress);
-                Log.d(TAG, "Upload is " + progress + "% done");
-
-            }).addOnPausedListener(taskSnapshot -> {
-                Log.d(TAG, "Upload is paused");
-                binding.progressBar.setVisibility(View.GONE);
-            });
-
-            Task<Uri> urlTask = uploadTask.continueWithTask(task -> {
-                if (!task.isSuccessful()) {
-                    throw Objects.requireNonNull(task.getException());
-                }
-                return imageRef.getDownloadUrl();
-            }).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Uri downloadUri = task.getResult();
-                    db.collection("users").document(auth.getCurrentUser().getUid())
-                            .update("images", FieldValue.arrayUnion(downloadUri.toString()))
-                            .addOnSuccessListener(aVoid -> {
-                                Log.d(TAG, "Your images stored successfully!");
-                            }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your images", e));
-                } else {
-                    Log.e(TAG, "Error when get download url", task.getException());
-                }
-            });
-        }
-
-
-//
-
-        // Save albums' urls to Firebase Firestore
-//        db.collection("user_albums").document(user.getUid())
-//                .set(albums)
-//                .addOnSuccessListener(aVoid -> {
-//                    Log.d(TAG, "Your albums stored successfully!");
-//                }).addOnFailureListener(e -> Log.e(TAG, "Error when upload your albums", e));
+        UserViewModel getUserViewModel();
     }
 
-
-    private boolean checkReadExternalPermission()
-    {
-        String permission = Manifest.permission.READ_MEDIA_IMAGES;
-        int res = getContext().checkCallingOrSelfPermission(permission);
-        return (res == PackageManager.PERMISSION_GRANTED);
-    }
 }

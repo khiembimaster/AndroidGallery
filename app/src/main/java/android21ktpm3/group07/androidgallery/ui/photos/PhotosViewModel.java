@@ -25,6 +25,7 @@ public class PhotosViewModel extends ViewModel {
         return photoGroups;
     }
 
+    // TODO: move the init part to service/executor
     public void AddPhotos(List<Photo> photoList) {
         List<PhotoGroup> groupsToUpdate = new ArrayList<>();
 
@@ -58,7 +59,7 @@ public class PhotosViewModel extends ViewModel {
 
     public void test() {
         Log.d(TAG, "test: " + photoGroups.get(0).getPhotos().size());
-        
+
         photoGroups.get(0).getPhotos().get(0).setRemoteUrl("test");
         List<Photo> list = new ArrayList<>();
         list.add(photoGroups.get(0).getPhotos().get(0));

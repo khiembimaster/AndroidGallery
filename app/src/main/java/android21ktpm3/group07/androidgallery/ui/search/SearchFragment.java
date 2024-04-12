@@ -24,7 +24,7 @@ public class SearchFragment extends Fragment {
         binding = FragmentSearchBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        final TextView textView = binding.textSearch;
+        final TextView textView = binding.searchBar.getTextView();
         SearchViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;
     }

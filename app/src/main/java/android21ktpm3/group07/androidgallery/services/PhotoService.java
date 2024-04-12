@@ -30,6 +30,7 @@ public class PhotoService extends Service {
 
     private LocalPhotosLoadedCallback localPhotosLoadedCallback;
     private RemotePhotosLoadedCallback remotePhotosLoadedCallback;
+    private LocalPhotosInAlbumLoadedCallback localPhotosInAlbumLoadedCallback;
 
     public class LocalBinder extends Binder {
         public PhotoService getService() {
@@ -60,6 +61,10 @@ public class PhotoService extends Service {
         localPhotosLoadedCallback = callback;
     }
 
+    public void registerPhotoInAlbumLoadedCallback(LocalPhotosInAlbumLoadedCallback callback) {
+        localPhotosInAlbumLoadedCallback = callback;
+    }
+
     public void getLocalPhotos() {
         executor.execute(() -> {
             ArrayList<Photo> photos = photoRepository.GetAllPhotos();
@@ -67,6 +72,16 @@ public class PhotoService extends Service {
 
             if (localPhotosLoadedCallback != null)
                 localPhotosLoadedCallback.onCompleted(photos);
+        });
+    }
+
+    public void getLocalPhotosInAlbum(long albumId) {
+        executor.execute(() -> {
+            ArrayList<Photo> photos = photoRepository.getPhotosInAlbum(albumId);
+            Log.d("PhotoService", "Getting local photos in album: " + photos.size());
+
+            if (localPhotosInAlbumLoadedCallback != null)
+                localPhotosInAlbumLoadedCallback.onCompleted(photos);
         });
     }
 
@@ -98,6 +113,10 @@ public class PhotoService extends Service {
 
     public interface RemotePhotosLoadedCallback {
         void onCompleted(ArrayList<PhotoDetails> photos);
+    }
+
+    public interface LocalPhotosInAlbumLoadedCallback {
+        void onCompleted(ArrayList<Photo> photos);
     }
 
     public class MyReceiver extends BroadcastReceiver {
