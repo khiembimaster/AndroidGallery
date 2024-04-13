@@ -112,8 +112,12 @@ public class PhotoService extends Service {
             for (Photo localPhoto : localPhotos) {
                 PhotoDetails remotePhoto = remotePhotosMap.get(localPhoto.getPath());
 
-                if (remotePhoto != null)
+                if (remotePhoto != null) {
                     localPhoto.setRemoteUrl(remotePhoto.remoteUrl);
+                } else {
+                    localPhoto.setRemoteUrl(null);
+                }
+
             }
 
             if (remotePhotosLoadedCallback != null)

@@ -22,6 +22,7 @@ import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.SavedStateViewModelFactory;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -31,13 +32,10 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.gms.auth.api.identity.BeginSignInRequest;
 import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
@@ -53,6 +51,7 @@ import java.util.concurrent.Executors;
 import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
+import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
 
 public class MainActivity extends AppCompatActivity implements
         IMenuItemHandler,
@@ -128,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements
 
                 serviceBound = true;
                 doWhenServiceBoundAndPermissionsGranted();
-                doWhenServiceBound();
+                doWhenServiceBoundAndUserSignedIn();
                 Log.d(TAG, "Service connected");
             }
 
@@ -171,6 +170,9 @@ public class MainActivity extends AppCompatActivity implements
             Log.d(TAG, "User is signed in");
             showOneTapUI = false;
             bottomSheetFragment.showUserInfo(user);
+
+            // FIXME change this shenanigan
+            doWhenServiceBoundAndUserSignedIn();
         } else {
             Log.d(TAG, "User is signed out");
             showOneTapUI = true;
@@ -181,8 +183,6 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onStart() {
         super.onStart();
-
-        doWhenServiceBound();
     }
 
     @Override
@@ -299,31 +299,31 @@ public class MainActivity extends AppCompatActivity implements
                 // with Firebase.
                 AuthCredential firebaseCredential = GoogleAuthProvider.getCredential(idToken, null);
                 auth.signInWithCredential(firebaseCredential)
-                        .addOnCompleteListener(MainActivity.this,
-                                new OnCompleteListener<AuthResult>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<AuthResult> task) {
-                                        if (task.isSuccessful()) {
-                                            // Sign in success, update UI with the signed-in user's
-                                            // information
-                                            Log.d("MainActivity", "signInWithCredential:success");
-                                            FirebaseUser user = auth.getCurrentUser();
-                                            updateUI(user);
-                                            db.collection("users").document(user.getUid()).set(new HashMap<>())
-                                                    .addOnSuccessListener(aVoid -> {
-                                                        Log.d(TAG, "DocumentSnapshot successfully" +
-                                                                " " +
-                                                                "written!");
-                                                    })
-                                                    .addOnFailureListener(e -> Log.w(TAG, "Error " +
-                                                            "writing " +
-                                                            "document", e));
-                                        } else {
-                                            // If sign in fails, display a message to the user.
-                                            Log.w("MainActivity", "signInWithCredential:failure",
-                                                    task.getException());
-                                            updateUI(null);
-                                        }
+                        .addOnCompleteListener(
+                                MainActivity.this,
+                                task -> {
+                                    if (task.isSuccessful()) {
+                                        // Sign in success, update UI with the signed-in user's
+                                        // information
+                                        Log.d("MainActivity", "signInWithCredential:success");
+                                        FirebaseUser user = auth.getCurrentUser();
+                                        updateUI(user);
+                                        db.collection("users").document(user.getUid()).set(new HashMap<>())
+                                                .addOnSuccessListener(aVoid -> {
+                                                    Log.d(TAG, "DocumentSnapshot successfully" +
+                                                            " " +
+                                                            "written!");
+                                                })
+                                                .addOnFailureListener(e -> Log.w(TAG, "Error " +
+                                                        "writing " +
+                                                        "document", e));
+
+
+                                    } else {
+                                        // If sign in fails, display a message to the user.
+                                        Log.w("MainActivity", "signInWithCredential:failure",
+                                                task.getException());
+                                        updateUI(null);
                                     }
                                 })
                         .addOnCanceledListener(() -> {
@@ -344,6 +344,9 @@ public class MainActivity extends AppCompatActivity implements
         auth.signOut();
         updateUI(null);
         showOneTapUI = true;
+
+        photoService.setFirebaseUser(null);
+        updateSyncingStatus();
     }
 
     private void toggleBottomSheet() {
@@ -357,12 +360,27 @@ public class MainActivity extends AppCompatActivity implements
         photoService.getLocalPhotos();
     }
 
-    private void doWhenServiceBound() {
+    private void doWhenServiceBoundAndUserSignedIn() {
         if (!serviceBound) return;
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
 
-        photoService.setFirebaseUser(auth.getCurrentUser());
+
+        photoService.setFirebaseUser(user);
+        updateSyncingStatus();
         // photoService.test();
         // photoService.getRemotePhotos();
+    }
+
+    // TODO update this shenanigan in the next commit
+    private void updateSyncingStatus() {
+        Fragment fragment =
+                getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment_activity_main);
+        PhotosFragment pf =
+                (PhotosFragment) fragment.getChildFragmentManager().getFragments().get(0);
+
+
+        photoService.updateSyncingStatus(pf.photosViewModel.getPhotosData());
     }
 
     @Override

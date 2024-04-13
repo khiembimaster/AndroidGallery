@@ -37,7 +37,7 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
 
 public class PhotosFragment extends Fragment {
-    protected PhotosViewModel photosViewModel;
+    public PhotosViewModel photosViewModel;
     protected IMenuItemHandler menuItemHandler;
     protected PhotoService photoService;
 
@@ -60,12 +60,7 @@ public class PhotosFragment extends Fragment {
 
         menuItemHandler.setOnCreateNewItemClickListener(() -> {
             photosViewModel.test();
-            // photoService.updateSyncingStatus(
-            //         photosViewModel.getPhotoGroups().stream()
-            //                 .map(PhotoGroup::getPhotos)
-            //                 .flatMap(List::stream)
-            //                 .collect(Collectors.toList())
-            // );
+            photoService.updateSyncingStatus(photosViewModel.getPhotosData());
         });
     }
 

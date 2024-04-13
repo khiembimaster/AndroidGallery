@@ -103,6 +103,10 @@ public class PhotosViewModel extends ViewModel {
         return photoGroups;
     }
 
+    public final ObservableList<Photo> getPhotosData() {
+        return photosData;
+    }
+
     // TODO: move the init part to service/executor
     public void AddPhotos(List<Photo> photoList) {
         photosData.addAll(photoList);
@@ -126,6 +130,11 @@ public class PhotosViewModel extends ViewModel {
                 0
         ));
         AddPhotos(list);
+    }
+
+    public void test2() {
+        Photo test = photoGroups.get(0).getPhotos().get(0);
+        test.setRemoteUrl("test");
     }
 
 }

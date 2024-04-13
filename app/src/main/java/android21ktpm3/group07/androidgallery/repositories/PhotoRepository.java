@@ -12,9 +12,10 @@ import android.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -35,7 +36,6 @@ import javax.annotation.Nullable;
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
-import android21ktpm3.group07.androidgallery.models.remote.UserDocument;
 
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
@@ -245,21 +245,30 @@ public class PhotoRepository {
             return new ArrayList<>();
         }
 
-        ArrayList<PhotoDetails> result;
-
-        Task<DocumentSnapshot> fetchTask = db.collection("users").document(user.getUid()).get();
+        Task<QuerySnapshot> fetchTask = db.collection("users")
+                .document(user.getUid())
+                .collection("images")
+                .get();
 
         try {
-            DocumentSnapshot documentSnapshot = Tasks.await(fetchTask);
-            if (documentSnapshot.exists()) {
-                UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
-                if (userDocument != null) {
-                    Log.d(TAG, "User document: " + userDocument.photos.size());
+            ArrayList<PhotoDetails> result = new ArrayList<>();
 
-                    return userDocument.photos;
-                }
-
+            QuerySnapshot querySnapshot = Tasks.await(fetchTask);
+            for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
+                result.add(documentSnapshot.toObject(PhotoDetails.class));
             }
+
+            return result;
+
+            // if (querySnapshot.exists()) {
+            //     UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
+            //     if (userDocument != null) {
+            //         Log.d(TAG, "User document: " + userDocument.photos.size());
+            //
+            //         return userDocument.photos;
+            //     }
+            //
+            // }
         } catch (ExecutionException | InterruptedException e) {
             Log.d(TAG, "Error getting remote photos", e);
         }
