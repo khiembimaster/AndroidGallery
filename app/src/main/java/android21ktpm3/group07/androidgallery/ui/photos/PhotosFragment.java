@@ -24,8 +24,11 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 import android21ktpm3.group07.androidgallery.IMenuItemHandler;
 import android21ktpm3.group07.androidgallery.R;
@@ -80,13 +83,26 @@ public class PhotosFragment extends Fragment {
                 photoService.registerPhotoLoadedCallback(photos ->
                         threadHandler.post(() -> loadPhotos(photos)));
 
-                photoService.registerPhotosDeletedCallback(result ->
+                photoService.registerPhotosDeletedCallback(new PhotoService.PhotosDeletedCallback() {
+                    @Override
+                    public void onCompleted(List<Photo> deletedPhotos) {
                         threadHandler.post(() -> {
-                            if (result) {
+                            photosViewModel.RemovePhotos(deletedPhotos);
+                        });
+                    }
 
-                            }
-
-                        }));
+                    @Override
+                    public void onFailed(List<Photo> deletedPhotos) {
+                        threadHandler.post(() -> {
+                            photosViewModel.RemovePhotos(deletedPhotos);
+                            Snackbar.make(
+                                    binding.getRoot(),
+                                    "Failed to delete photo(s)",
+                                    Snackbar.LENGTH_SHORT
+                            ).show();
+                        });
+                    }
+                });
 
                 isBound = true;
                 Log.d(TAG, "Service connected");
@@ -208,7 +224,7 @@ public class PhotosFragment extends Fragment {
     }
 
     public void deletePhotos() {
-        // photoService.deletePhotos(adapter.getSelectedPhotos());
+        photoService.deletePhotos(adapter.getSelectedPhotos());
     }
 
     public void viewPhoto(Photo photo) {

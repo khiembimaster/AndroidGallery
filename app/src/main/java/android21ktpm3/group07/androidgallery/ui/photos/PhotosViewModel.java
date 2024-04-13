@@ -88,6 +88,9 @@ public class PhotosViewModel extends ViewModel {
                     for (PhotoGroup group : photoGroups) {
                         if ((group.getDate()).isEqual(photo.getRepresentativeDate())) {
                             group.getPhotos().remove(photo);
+                            if (group.getPhotos().isEmpty()) {
+                                photoGroups.remove(group);
+                            }
                             break;
                         }
                     }
@@ -103,6 +106,10 @@ public class PhotosViewModel extends ViewModel {
     // TODO: move the init part to service/executor
     public void AddPhotos(List<Photo> photoList) {
         photosData.addAll(photoList);
+    }
+
+    public void RemovePhotos(List<Photo> photoList) {
+        photosData.removeAll(photoList);
     }
 
     public void test() {

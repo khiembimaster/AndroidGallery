@@ -267,6 +267,13 @@ public class PhotoRepository {
         return new ArrayList<>();
     }
 
+
+    /**
+     * Delete photos from the device
+     *
+     * @param photos List of photos to delete
+     * @return List of photos that were successfully deleted
+     */
     public List<Photo> deletePhotos(List<Photo> photos) {
         List<Photo> deletedPhotos = new ArrayList<>();
         for (Photo photo : photos) {

@@ -121,12 +121,16 @@ public class PhotoService extends Service {
         });
     }
 
-    public void deletePhotos(List<Photo> photos, List<Photo> source) {
+    public void deletePhotos(List<Photo> photos) {
         executor.execute(() -> {
-            // boolean result = photoRepository.deletePhotos(photos);
+            List<Photo> deletedPhotos = photoRepository.deletePhotos(photos);
 
-            if (photosDeletedCallback != null)
-                photosDeletedCallback.onCompleted(true);
+            if (photosDeletedCallback != null) {
+                if (deletedPhotos.size() == photos.size())
+                    photosDeletedCallback.onCompleted(photos);
+                else
+                    photosDeletedCallback.onFailed(photos);
+            }
         });
     }
 
@@ -156,7 +160,9 @@ public class PhotoService extends Service {
     }
 
     public interface PhotosDeletedCallback {
-        void onCompleted(boolean result);
+        void onCompleted(List<Photo> deletedPhotos);
+
+        void onFailed(List<Photo> deletedPhotos);
     }
 
     public class MyReceiver extends BroadcastReceiver {
