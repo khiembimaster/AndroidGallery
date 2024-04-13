@@ -18,11 +18,11 @@ public class _AlbumPhotosFragment extends PhotosFragment {
     private final String TAG = this.getClass().getSimpleName();
 
     @Override
-    public void displayShareOptionItem() {
+    public void displayFragmentOptionItems() {
     }
 
     @Override
-    public void hideShareOptionItem() {
+    public void hideFragmentOptionItems() {
     }
 
     @Override
