@@ -103,6 +103,7 @@ public class PhotoUploadWorker extends Worker {
             if(task.isSuccessful()){
                 List<Task<Void>> tasks = new ArrayList<>();
                 for (QueryDocumentSnapshot document : task.getResult()) {
+                    Thread.sleep(1000);
                     Log.d(TAG, document.getId() + " => " + document.getData());
                     Map<String, Object> data = document.getData();
                     String path = (String)data.get("path");
@@ -126,6 +127,12 @@ public class PhotoUploadWorker extends Worker {
                 Log.d(TAG, "Error getting documents: ", task.getException());
             }
             return null;
+        });
+
+        allTasks.addOnSuccessListener(aVoid -> {
+            Log.d(TAG, "All tasks completed successfully");
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error when upload your images", e);
         });
 
         try {

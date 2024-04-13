@@ -17,15 +17,21 @@ import com.google.firebase.firestore.AggregateQuery;
 import com.google.firebase.firestore.AggregateSource;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 
 import java.io.File;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import android21ktpm3.group07.androidgallery.models.Photo;
@@ -50,36 +56,50 @@ public class PrepareBackupWorker extends Worker {
         PhotoRepository photoRepository = new PhotoRepository(getApplicationContext());
         List<Photo> photoList = photoRepository.GetAllPhotos(); //TODO: Load images from local storage
         String userId = Objects.requireNonNull(user).getUid();
-        CollectionReference collectionReference = db.collection("users").document(userId).collection("images");
 
-        List<Task<DocumentReference>> tasks = new ArrayList<>();
-        for (Photo photo: photoList) {
-             AggregateQuery checkExistQuery = collectionReference.whereEqualTo("name", photo.getName()).count();
-             Task<DocumentReference> addTask = checkExistQuery.get(AggregateSource.SERVER).continueWithTask(task -> {
-                if (task.getResult().getCount() == 0) {
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("path", photo.getPath());
-                    data.put("name", photo.getName());
-                    data.put("modifiedDate", photo.getModifiedDate());
-                    data.put("fileSize", photo.getFileSize());
-                    data.put("tags", photo.getTags());
-                    data.put("status", "pending");
-                    return collectionReference.add(data);
+        DocumentReference userRef = db.collection("users").document(userId);
+        CollectionReference collectionReference = userRef.collection("images");
+
+
+        Task<List<Task<DocumentReference>>> taskListTask = userRef.get().continueWithTask(task -> {
+            DocumentSnapshot documentSnapshot = task.getResult();
+            LocalDate lastBackupDate = null;
+            if (documentSnapshot.contains("lastBackupDate")) {
+                Date date = documentSnapshot.getDate("lastBackupDate");
+                Instant instant = date.toInstant();
+                lastBackupDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+                Log.d("PrepareBackupWorker", "Last backup date: " + lastBackupDate);
+            }
+
+            List<Task<DocumentReference>> tasks = new ArrayList<>();
+            for (Photo photo: photoList.subList(0, Math.min(photoList.size(), 200))) {
+                if (lastBackupDate != null && photo.getRepresentativeDate().isBefore(lastBackupDate)) {
+                    continue;
                 }
-                return null;
-            });
-            addTask.addOnSuccessListener(documentReference -> {
-                Log.d("PrepareBackupWorker", "Added document with ID: " + documentReference.getId());
-            }).addOnFailureListener(e -> {
-                Log.e("PrepareBackupWorker", "Document existed", e);
-            });
+                Map<String, Object> data = new HashMap<>();
+                data.put("path", photo.getPath());
+                data.put("name", photo.getName());
+                data.put("modifiedDate", photo.getModifiedDate());
+                data.put("fileSize", photo.getFileSize());
+                data.put("tags", photo.getTags());
+                data.put("status", "pending");
 
-            tasks.add(addTask);
-
-        }
+                Task<DocumentReference> addTask = collectionReference.add(data);
+                addTask.addOnSuccessListener(documentReference -> {
+                    Log.d("PrepareBackupWorker", "Added photo: " + documentReference.getId());
+                });
+                tasks.add(addTask);
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("lastBackupDate", Date.from(Instant.now()));
+            userRef.set(data);
+            return Tasks.forResult(tasks);
+        });
 
         try {
+            List<Task<DocumentReference>> tasks = Tasks.await(taskListTask);
             Tasks.await(Tasks.whenAllComplete(tasks));
+
             return Result.success();
         } catch (ExecutionException e) {
             return Result.failure();

@@ -11,8 +11,10 @@ import android.widget.TextView;
 
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkContinuation;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import androidx.work.WorkQuery;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -20,6 +22,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
@@ -81,38 +84,57 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
         WorkManager workManager = WorkManager
                 .getInstance(requireContext());
 
+        // if (workManager.getWorkInfosForUniqueWork("backupWork").isDone()) {
+        //     workManager.getWorkInfosForUniqueWorkLiveData("backupWork").observe(getViewLifecycleOwner(), workInfos -> {
+        //         if (workInfos != null && !workInfos.isEmpty()) {
+        //             WorkInfo workInfo = workInfos.get(0);
+        //             UserViewModel.setIsBackupProcessing(true);
+        //             UserViewModel.setCanUpload(false);
+        //             updateProgress(workInfo);
+        //         }
+        //     });
+        // } else {
+        //     UserViewModel.setIsBackupProcessing(false);
+        // }
 
-        if (!workManager.getWorkInfosForUniqueWork("startBackup").isDone()) {
-            workManager.getWorkInfosForUniqueWorkLiveData("startBackup").observe(getViewLifecycleOwner(), workInfos -> {
-                if (workInfos != null && !workInfos.isEmpty()) {
-                    WorkInfo workInfo = workInfos.get(0);
-                    UserViewModel.setIsBackupProcessing(true);
-                    UserViewModel.setCanUpload(false);
-                    updateProgress(workInfo);
-                }
-            });
-        } else {
-            UserViewModel.setIsBackupProcessing(false);
-        }
-
-        OneTimeWorkRequest prepareWorkRequest =
-                new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
-                        .build();
-        OneTimeWorkRequest uploadWorkRequest =
-                new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
-                        .build();
-        workManager.getWorkInfoByIdLiveData(uploadWorkRequest.getId())
-                .observe(this, workInfo -> {
-                    if (workInfo != null) {
-                        updateProgress(workInfo);
-                    }
+        workManager.getWorkInfosLiveData(WorkQuery.Builder.fromStates(Arrays.asList(WorkInfo.State.RUNNING)).build()).observe(requireActivity(), workInfos -> {
+            if (!workInfos.isEmpty()) {
+                // There is at least one work that is currently running
+                Log.d(TAG, workInfos.toString());
+                workManager.getWorkInfoByIdLiveData(workInfos.get(0).getId())
+                        .observe(this, workInfo -> {
+                            if (workInfo != null) {
+                                UserViewModel.setIsBackupProcessing(true);
+                                UserViewModel.setCanUpload(false);
+                                updateProgress(workInfo);
+                            }
+                        });
+            } else {
+                // No work is running
+                Log.d(TAG, "No work is running");
+                OneTimeWorkRequest prepareWorkRequest =
+                        new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
+                                .build();
+                OneTimeWorkRequest uploadWorkRequest =
+                        new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
+                                .build();
+                workManager.getWorkInfoByIdLiveData(uploadWorkRequest.getId())
+                        .observe(this, workInfo -> {
+                            if (workInfo != null) {
+                                updateProgress(workInfo);
+                            }
+                        });
+                WorkContinuation workContinuation = workManager
+                        .beginUniqueWork("backupWork", ExistingWorkPolicy.REPLACE, prepareWorkRequest)
+                        .then(uploadWorkRequest);
+                binding.btnBackupData.setOnClickListener(v -> {
+                    workContinuation.enqueue();
                 });
-        binding.btnBackupData.setOnClickListener(v -> {
-            workManager.enqueueUniqueWork("prepareBackup", ExistingWorkPolicy.REPLACE,
-                    prepareWorkRequest);
-            workManager.enqueueUniqueWork("startBackup", ExistingWorkPolicy.REPLACE,
-                    uploadWorkRequest);
+            }
         });
+
+
+
 
 
         binding.btnLogout.setOnClickListener(v -> {
@@ -150,7 +172,6 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                         long progress = workInfo.getProgress().getLong("total_count", 0);
                         // Update your UI with progress here
                         UserViewModel.setTotalImagesLeft(progress);
-
                     }
                     break;
                 case SUCCEEDED:
