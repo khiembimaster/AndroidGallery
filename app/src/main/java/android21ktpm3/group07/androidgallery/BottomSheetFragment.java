@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Locale;
 
 import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
@@ -84,20 +85,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
         WorkManager workManager = WorkManager
                 .getInstance(requireContext());
 
-        // if (workManager.getWorkInfosForUniqueWork("backupWork").isDone()) {
-        //     workManager.getWorkInfosForUniqueWorkLiveData("backupWork").observe(getViewLifecycleOwner(), workInfos -> {
-        //         if (workInfos != null && !workInfos.isEmpty()) {
-        //             WorkInfo workInfo = workInfos.get(0);
-        //             UserViewModel.setIsBackupProcessing(true);
-        //             UserViewModel.setCanUpload(false);
-        //             updateProgress(workInfo);
-        //         }
-        //     });
-        // } else {
-        //     UserViewModel.setIsBackupProcessing(false);
-        // }
-
-        workManager.getWorkInfosLiveData(WorkQuery.Builder.fromStates(Arrays.asList(WorkInfo.State.RUNNING)).build()).observe(requireActivity(), workInfos -> {
+        workManager.getWorkInfosLiveData(WorkQuery.Builder.fromStates(Collections.singletonList(WorkInfo.State.RUNNING)).build()).observe(requireActivity(), workInfos -> {
             if (!workInfos.isEmpty()) {
                 // There is at least one work that is currently running
                 Log.d(TAG, workInfos.toString());
@@ -111,6 +99,8 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                         });
             } else {
                 // No work is running
+                updateProgress(null);
+
                 Log.d(TAG, "No work is running");
                 OneTimeWorkRequest prepareWorkRequest =
                         new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
@@ -186,6 +176,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                     break;
             }
         }
+        else UserViewModel.setTotalImagesLeft(0L);
     }
 
     public void showUserInfo(FirebaseUser user) {

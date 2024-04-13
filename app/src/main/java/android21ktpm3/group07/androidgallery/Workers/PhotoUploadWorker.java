@@ -103,7 +103,6 @@ public class PhotoUploadWorker extends Worker {
             if(task.isSuccessful()){
                 List<Task<Void>> tasks = new ArrayList<>();
                 for (QueryDocumentSnapshot document : task.getResult()) {
-                    Thread.sleep(1000);
                     Log.d(TAG, document.getId() + " => " + document.getData());
                     Map<String, Object> data = document.getData();
                     String path = (String)data.get("path");
