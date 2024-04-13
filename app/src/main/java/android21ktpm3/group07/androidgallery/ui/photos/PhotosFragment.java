@@ -41,7 +41,6 @@ public class PhotosFragment extends Fragment {
     private final String TAG = "PhotosFragment";
     protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private FragmentPhotosBinding binding;
-    private Menu menu;
     protected Context context;
     private PhotosRecyclerAdapter adapter;
     protected boolean isBound = false;
@@ -54,7 +53,17 @@ public class PhotosFragment extends Fragment {
 
         menuItemHandler = (IMenuItemHandler) context;
         menuItemHandler.setOnShareItemClickListener(this::sharePhotos);
-        menuItemHandler.setOnCreateNewItemClickListener(() -> photosViewModel.test());
+        menuItemHandler.setOnDeleteItemClickListener(this::deletePhotos);
+
+        menuItemHandler.setOnCreateNewItemClickListener(() -> {
+            photosViewModel.test();
+            // photoService.updateSyncingStatus(
+            //         photosViewModel.getPhotoGroups().stream()
+            //                 .map(PhotoGroup::getPhotos)
+            //                 .flatMap(List::stream)
+            //                 .collect(Collectors.toList())
+            // );
+        });
     }
 
     @Override
@@ -70,6 +79,14 @@ public class PhotosFragment extends Fragment {
 
                 photoService.registerPhotoLoadedCallback(photos ->
                         threadHandler.post(() -> loadPhotos(photos)));
+
+                photoService.registerPhotosDeletedCallback(result ->
+                        threadHandler.post(() -> {
+                            if (result) {
+
+                            }
+
+                        }));
 
                 isBound = true;
                 Log.d(TAG, "Service connected");
@@ -137,26 +154,34 @@ public class PhotosFragment extends Fragment {
         adapter.setSelectingModeDisplayingCallback(new PhotosRecyclerAdapter.SelectingModeDisplayingCallback() {
             @Override
             public void onExit() {
-                hideShareOptionItem();
+                hideFragmentOptionItems();
             }
 
             @Override
             public void onEnter() {
-                displayShareOptionItem();
+                displayFragmentOptionItems();
             }
         });
 
         binding.recyclerView.setAdapter(adapter);
     }
 
-    public void displayShareOptionItem() {
-        menuItemHandler.getMenu().findItem(R.id.share)
+    public void displayFragmentOptionItems() {
+        Menu menu = menuItemHandler.getMenu();
+        menu.findItem(R.id.share)
+                .setVisible(true)
+                .setEnabled(true);
+        menu.findItem(R.id.delete)
                 .setVisible(true)
                 .setEnabled(true);
     }
 
-    public void hideShareOptionItem() {
-        menuItemHandler.getMenu().findItem(R.id.share)
+    public void hideFragmentOptionItems() {
+        Menu menu = menuItemHandler.getMenu();
+        menu.findItem(R.id.share)
+                .setVisible(false)
+                .setEnabled(false);
+        menu.findItem(R.id.delete)
                 .setVisible(false)
                 .setEnabled(false);
     }
@@ -180,6 +205,10 @@ public class PhotosFragment extends Fragment {
         shareIntent.setType("image/*");
 
         startActivity(Intent.createChooser(shareIntent, "Share images to..."));
+    }
+
+    public void deletePhotos() {
+        // photoService.deletePhotos(adapter.getSelectedPhotos());
     }
 
     public void viewPhoto(Photo photo) {

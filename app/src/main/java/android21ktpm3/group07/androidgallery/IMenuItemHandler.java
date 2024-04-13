@@ -11,6 +11,8 @@ public interface IMenuItemHandler {
 
     void setOnShareItemClickListener(OnMenuItemClickListener listener);
 
+    void setOnDeleteItemClickListener(OnMenuItemClickListener listener);
+
     Menu getMenu();
 
     interface OnMenuItemClickListener {

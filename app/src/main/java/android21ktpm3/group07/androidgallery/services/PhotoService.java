@@ -14,6 +14,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +33,7 @@ public class PhotoService extends Service {
     private LocalPhotosLoadedCallback localPhotosLoadedCallback;
     private RemotePhotosLoadedCallback remotePhotosLoadedCallback;
     private LocalPhotosInAlbumLoadedCallback localPhotosInAlbumLoadedCallback;
+    private PhotosDeletedCallback photosDeletedCallback;
 
     public class LocalBinder extends Binder {
         public PhotoService getService() {
@@ -65,6 +68,15 @@ public class PhotoService extends Service {
         localPhotosInAlbumLoadedCallback = callback;
     }
 
+    public void registerRemotePhotosLoadedCallback(RemotePhotosLoadedCallback callback) {
+        remotePhotosLoadedCallback = callback;
+    }
+
+    public void registerPhotosDeletedCallback(PhotosDeletedCallback callback) {
+        photosDeletedCallback = callback;
+    }
+
+
     public void getLocalPhotos() {
         executor.execute(() -> {
             ArrayList<Photo> photos = photoRepository.GetAllPhotos();
@@ -85,15 +97,39 @@ public class PhotoService extends Service {
         });
     }
 
-    public void getRemotePhotos() {
+    public void updateSyncingStatus(List<Photo> localPhotos) {
         executor.execute(() -> {
-            ArrayList<PhotoDetails> photos = photoRepository.getAllRemotePhotos();
-            Log.d("PhotoService", "Getting remote photos: " + photos.size());
+            ArrayList<PhotoDetails> remotePhotos = photoRepository.getAllRemotePhotos();
+            Log.d("PhotoService", "Getting remote photos: " + remotePhotos.size());
+
+            HashMap<String, PhotoDetails> remotePhotosMap = new HashMap<>(
+                    (int) Math.ceil(remotePhotos.size() / 0.75)
+            );
+            for (PhotoDetails remotePhoto : remotePhotos) {
+                remotePhotosMap.put(remotePhoto.localPath, remotePhoto);
+            }
+
+            for (Photo localPhoto : localPhotos) {
+                PhotoDetails remotePhoto = remotePhotosMap.get(localPhoto.getPath());
+
+                if (remotePhoto != null)
+                    localPhoto.setRemoteUrl(remotePhoto.remoteUrl);
+            }
 
             if (remotePhotosLoadedCallback != null)
-                remotePhotosLoadedCallback.onCompleted(photos);
+                remotePhotosLoadedCallback.onCompleted();
         });
     }
+
+    public void deletePhotos(List<Photo> photos, List<Photo> source) {
+        executor.execute(() -> {
+            // boolean result = photoRepository.deletePhotos(photos);
+
+            if (photosDeletedCallback != null)
+                photosDeletedCallback.onCompleted(true);
+        });
+    }
+
 
     public void setFirebaseUser(FirebaseUser user) {
         photoRepository.setFirebaseUser(user);
@@ -112,11 +148,15 @@ public class PhotoService extends Service {
     }
 
     public interface RemotePhotosLoadedCallback {
-        void onCompleted(ArrayList<PhotoDetails> photos);
+        void onCompleted();
     }
 
     public interface LocalPhotosInAlbumLoadedCallback {
         void onCompleted(ArrayList<Photo> photos);
+    }
+
+    public interface PhotosDeletedCallback {
+        void onCompleted(boolean result);
     }
 
     public class MyReceiver extends BroadcastReceiver {

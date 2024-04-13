@@ -62,4 +62,6 @@
     <string name="sub_text">Please sign in to use this feature</string>
     <string name="searchbar_hint">type some thing here</string>
     <string name="cancel_backup">Cancel backup</string>
+    <string name="title_delete">delete</string>
+    <string name="content_description_delete_images">Delete images</string>
 </resources>

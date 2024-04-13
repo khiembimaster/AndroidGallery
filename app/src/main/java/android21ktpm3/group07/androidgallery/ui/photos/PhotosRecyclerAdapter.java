@@ -65,14 +65,11 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
             }
         };
 
+
+        // TODO: Should we separate adapter to a different list?
         photoGroups.addOnListChangedCallback(new ObservableList.OnListChangedCallback<ObservableList<PhotoGroup>>() {
             @Override
             public void onChanged(ObservableList<PhotoGroup> sender) {
-                // items = sender.stream()
-                //         .map(Item::new)
-                //         .collect(Collectors.toList());
-                // notifyDataSetChanged();
-
                 throw new UnsupportedOperationException("not implemented");
             }
 

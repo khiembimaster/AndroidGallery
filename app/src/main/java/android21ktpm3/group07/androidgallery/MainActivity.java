@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements
     private OnMenuItemClickListener onAccountItemClickListener;
     private OnMenuItemClickListener onCreateNewItemClickListener;
     private OnMenuItemClickListener onShareItemClickListener;
+    private OnMenuItemClickListener onDeleteItemClickListener;
     private ActivityMainBinding binding;
     private BottomSheetBehavior bottomSheetBehavior;
 
@@ -106,6 +107,9 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             } else if (item.getItemId() == R.id.share) {
                 onShareItemClickListener.onClicked();
+                return true;
+            } else if (item.getItemId() == R.id.delete) {
+                onDeleteItemClickListener.onClicked();
                 return true;
             }
 
@@ -194,6 +198,11 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void setOnShareItemClickListener(OnMenuItemClickListener onShareItemClickListener) {
         this.onShareItemClickListener = onShareItemClickListener;
+    }
+
+    @Override
+    public void setOnDeleteItemClickListener(OnMenuItemClickListener onDeleteItemClickListener) {
+        this.onDeleteItemClickListener = onDeleteItemClickListener;
     }
 
     @Override
