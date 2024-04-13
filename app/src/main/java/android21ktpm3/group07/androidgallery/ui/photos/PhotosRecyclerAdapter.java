@@ -125,7 +125,12 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
 
     public List<Photo> getSelectedPhotos() {
         return items.stream()
-                .map(item -> item.adapter.getSelectedPhoto())
+                .map(item -> {
+                    if (item.adapter != null) {
+                        return item.adapter.getSelectedPhoto();
+                    }
+                    return Collections.<Photo>emptyList();
+                })
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
