@@ -66,7 +66,7 @@ public class MemoriesFragment extends Fragment {
             @Override
             public void run() {
                 if (isAdded()) {
-                    Intent intent = new Intent(requireContext(), MemoriesActivity.class);
+                    Intent intent = new Intent(requireContext(), slideShow.class);
                     intent.putExtra("memoriesPhotos", new ArrayList<>(memoriesViewModel.getPhotosGroupByDatePrevious()));
                     startActivity(intent);
                 }

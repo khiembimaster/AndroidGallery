@@ -1,115 +1,259 @@
 package android21ktpm3.group07.androidgallery.ui.memories;
 
-import android.content.Context;
+import static androidx.fragment.app.FragmentManager.TAG;
+
+import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
-import android.media.MediaFormat;
-import android.media.MediaMuxer;
-import android.media.MediaPlayer;
+import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.Button;
 import android.widget.VideoView;
 
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+
+
+
+
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.common.util.Util;
+import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.datasource.FileDataSource;
+import androidx.media3.exoplayer.ExoPlaybackException;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
+import androidx.media3.ui.PlayerView;
+
+
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import android21ktpm3.group07.androidgallery.MainActivity;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
 
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.os.Handler;
-import android.util.AttributeSet;
-import android.view.View;
+public class MemoriesActivity extends AppCompatActivity implements Player.Listener {
 
-public class MemoriesActivity extends AppCompatActivity implements BitmapToVideoEncoder.IBitmapToVideoEncoderCallback {
-
-    private Context context;
 
     private List<Photo> memoriesPhoto;
+    private List<Photo> alo;
 
-    public MemoriesActivity() {
+    private Uri videoLocation;
+    private VideoView videoView;
 
-    }
+    private boolean isVideoPlaying = false;
 
-    public MemoriesActivity(Context context, List<Photo> memoriesPhoto) {
-        this.context = context;
-        this.memoriesPhoto = memoriesPhoto;
-    }
+    private PlayerView playerView;
+    private ExoPlayer player;
 
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.memories_view);
-        context = this;
 
+        Button playButton = findViewById(R.id.bt_play);
 
         memoriesPhoto = getIntent().getParcelableArrayListExtra("memoriesPhotos");
+        playerView = findViewById(R.id.playerView);
+//videoView = findViewById(R.id.videoView);
 
-        LinearLayout containerLayout = findViewById(R.id.container_layout);
 
+        Bitmap[] frames;
+        player = new ExoPlayer.Builder(this).build();
+        //player = ExoPlayerFactory.newSimpleInstance(this, new DefaultTrackSelector());
+        createVideoFromImages();
+        playerView.setPlayer(player);
+        playButton = findViewById(R.id.bt_play);
+        prepareVideo();
 
-        // Generate frames and create a video in memory
-        Bitmap[] frames = generateFrames(memoriesPhoto);
+        playButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Xử lý sự kiện nhấn nút play ở đây
+                // Ví dụ: play hoặc pause video
+                if (player.isPlaying()) {
+                    player.pause();
+                } else {
+                    player.play();
+                }
+            }
+        });
+    }
 
-//        // Create VideoMaker object and generate video
-//   //  VideoMaker videoMaker = new VideoMaker(context);
-  String outputVideoPath = getOutputVideoPath();
-//      //  videoMaker.createVideoFromBitmaps(frames, outputVideoPath);
+    //   playerView.setPlayer(player);
+
 //
-//        // Play the video using VideoView
-//        VideoView videoView = new VideoView(this);
-//        containerLayout.addView(videoView);
-//
-//        // Set the video path to the output video file
-//        String videoPath = "file://" + outputVideoPath;
-//        videoView.setVideoURI(Uri.parse(videoPath));
-//        videoView.start();
 
-        BitmapToVideoEncoder encoder = new BitmapToVideoEncoder(this);
-        encoder.startEncoding(frames[0].getWidth(), frames[0].getHeight(), new File(outputVideoPath));
 
-        // Queue frames for encoding
-        for (Bitmap frame : frames) {
-            encoder.queueFrame(frame);
+    private void createVideoFromImages() {
+
+        String strCommand = "ffmpeg -loop 1 -t 3 -i " + getDrawableImagePath(R.drawable.avatar01) +
+                " -loop 1 -t 3 -i " + getDrawableImagePath(R.drawable.avatar01) +
+                " -loop 1 -t 3 -i " + getDrawableImagePath(R.drawable.avatar01) +
+                " -loop 1 -t 3 -i " + getDrawableImagePath(R.drawable.avatar01) +
+
+                " -filter_complex [0:v]trim=duration=3,fade=t=out:st=2.5:d=0.5[v0];" +
+                "[1:v]trim=duration=3,fade=t=in:st=0:d=0.5,fade=t=out:st=2.5:d=0.5[v1];" +
+                "[2:v]trim=duration=3,fade=t=in:st=0:d=0.5,fade=t=out:st=2.5:d=0.5[v2];" +
+                "[3:v]trim=duration=3,fade=t=in:st=0:d=0.5,fade=t=out:st=2.5:d=0.5[v3];" +
+                "[v0][v1][v2][v3]concat=n=4:v=1:a=0,format=yuv420p[v] -map [v] -preset ultrafast " +
+                getOutputVideoPath();
+        String ffmpegCommand = "ffmpeg -framerate 1/3 -i " + getDrawableImagePath(R.drawable.avatar01) + " -i " + getDrawableImagePath(R.drawable.avatar01) + " -i " + getDrawableImagePath(R.drawable.avatar01) + " -i " + getDrawableImagePath(R.drawable.avatar01) + " -filter_complex " +
+                "\"[0:v][1:v][2:v][3:v]concat=n=4:v=1[outv]\" -map \"[outv]\" -c:v libx264 -r 30 -pix_fmt yuv420p output_video.mp4";
+
+
+        executeFFmpegCommand(ffmpegCommand);
+        System.out.println("alo");
+
+        // displayVideo(getOutputVideoPath());
+        // executeFFmpegCommand(strCommand);
+    }
+
+    private void displayVideo(String videoPath) {
+        // Set the video source
+        videoView.setVideoURI(Uri.parse("file://" + videoPath));
+
+        // Start playing the video
+        videoView.start();
+    }
+
+    @SuppressLint("RestrictedApi")
+    @OptIn(markerClass = UnstableApi.class)
+    private void prepareVideo() {
+        playerView.setPlayer(player);
+        DataSource.Factory dataSourceFactory = new FileDataSource.Factory();
+
+        MediaSource videoSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(Uri.fromFile(new File(getOutputVideoPath()))));
+
+        player.addMediaSource(videoSource);
+        player.prepare();
+        player.setPlayWhenReady(true);
+        // player.play();
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    public void onPlayerError(PlaybackException error) {
+        Player.Listener.super.onPlayerError(error);
+        Log.e(TAG, "TYPE_SOURCE: " + error.getMessage());
+        //Restart the playback
+        player.stop(); // Stop the current playback
+        player.release(); // Reset the player to its initial state
+        player.prepare(); // Prepare the player for playback
+        player.play(); // Start the playback again
+
+
+        // You may also choose to retry playback or display an error message to the user
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+//        playerView.setPlayer(player);
+        prepareVideo(); // Call prepareVideo method here
+    }
+
+
+    private void executeFFmpegCommand(String command) {
+        try {
+            Process process = Runtime.getRuntime().exec("chmod +x " + command);
+
+            process.waitFor();
+            System.out.println(process.getOutputStream());
+            // prepareVideo();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
 
-        // Stop encoding
-        encoder.stopEncoding();
-
-        // Play the video using VideoView
-        VideoView videoView = new VideoView(this);
-        containerLayout.addView(videoView);
-
-        // Set the video path to the output video file
-        String videoPath = "file://" + outputVideoPath;
-        videoView.setVideoPath(videoPath);
-        videoView.start();
 
     }
 
+    private String getDrawableImagePath(int drawableId) {
+        return "android.resource://" + getPackageName() + "/" + drawableId;
+    }
+
+    private String convertDrawableToImage(int drawableId) {
+
+        BitmapDrawable drawable = (BitmapDrawable) ContextCompat.getDrawable(this, drawableId);
+        Bitmap bitmap = drawable.getBitmap();
+
+        // Save the bitmap to a temporary file
+        File tempDir = getApplicationContext().getCacheDir();
+        File tempFile = new File(tempDir, "temp_image.png");
+        FileOutputStream outStream;
+        try {
+            outStream = new FileOutputStream(tempFile);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream);
+            outStream.flush();
+            outStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return tempFile.getAbsolutePath();
+    }
+
+
     @Override
-    public void onEncodingComplete(File outputFile) {
-        Toast.makeText(this, "Encoding complete!", Toast.LENGTH_LONG).show();
+    protected void onDestroy() {
+        super.onDestroy();
+        releasePlayer();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        player.play();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        player.pause();
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        releasePlayer();
+    }
+
+    private void releasePlayer() {
+        if (player != null) {
+            player.stop();
+            player.release();
+        }
+    }
+
+    private void prepareAndPlay() {
+        if (player != null && !player.isPlaying()) {
+            player.prepare();
+            player.play();
+        }
     }
 
 
@@ -118,21 +262,37 @@ public class MemoriesActivity extends AppCompatActivity implements BitmapToVideo
         for (int i = 0; i < photos.size(); i++) {
             String imagePath = photos.get(i).getPath();
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            frames[i] = bitmap;
+            if (bitmap != null) {
+                frames[i] = bitmap;
+            } else {
+                // Handle case when bitmap cannot be loaded
+            }
         }
-
         return frames;
     }
-    private String getOutputVideoPath() {
 
+    public static Bitmap drawableToBitmap(Drawable drawable) {
+        if (drawable instanceof BitmapDrawable) {
+            return ((BitmapDrawable) drawable).getBitmap();
+        }
+
+        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+
+        return bitmap;
+    }
+
+
+    private String getOutputVideoPath() {
         String destination = String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
         File directory = new File(destination);
         if (!directory.exists()) {
             directory.mkdirs();
         }
         return destination + File.separator + "output_video.mp4";
+
     }
 }
-
-
 

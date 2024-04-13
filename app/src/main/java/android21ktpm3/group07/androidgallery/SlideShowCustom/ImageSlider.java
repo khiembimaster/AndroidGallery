@@ -172,8 +172,6 @@ public class ImageSlider extends RelativeLayout {
                 setupDots(imageList.size());
             }
             if (autoCycle) {
-
-
                 startSliding();
 
             }
@@ -182,10 +180,6 @@ public class ImageSlider extends RelativeLayout {
     public void setAudio(Uri audioUri){
 
         this.audio = String.valueOf(audioUri);
-        // Stop the previously started audio thread, if any
-
-        // Create and start a new audio thread
-
 
                 playAudio(audio);
 

@@ -1,3 +1,261 @@
+//package android21ktpm3.group07.androidgallery.ui.SlideShow;
+//
+//
+//import android.Manifest;
+//import android.app.Activity;
+//import android.content.Context;
+//import android.content.DialogInterface;
+//import android.content.Intent;
+//import android.content.pm.PackageManager;
+//import android.database.Cursor;
+//import android.net.Uri;
+//import android.os.Bundle;
+//import android.provider.MediaStore;
+//import android.provider.Settings;
+//import android.view.MenuItem;
+//import android.view.View;
+//import android.widget.PopupMenu;
+//import android.widget.Toast;
+//
+//import androidx.activity.result.ActivityResultLauncher;
+//import androidx.activity.result.contract.ActivityResultContracts;
+//import androidx.annotation.NonNull;
+//import androidx.annotation.Nullable;
+//import androidx.appcompat.app.AlertDialog;
+//import androidx.appcompat.app.AppCompatActivity;
+//import androidx.core.app.ActivityCompat;
+//import androidx.core.content.ContextCompat;
+//
+//
+//import java.util.ArrayList;
+//
+//import android21ktpm3.group07.androidgallery.R;
+//import android21ktpm3.group07.androidgallery.SlideShowCustom.ImageSlider;
+//import android21ktpm3.group07.androidgallery.SlideShowCustom.constants.AnimationTypes;
+//import android21ktpm3.group07.androidgallery.SlideShowCustom.constants.ScaleTypes;
+//import android21ktpm3.group07.androidgallery.SlideShowCustom.models.SlideModel;
+//
+//public class SlideShowActivity extends AppCompatActivity implements SlideShowActivityInterface {
+//    private static final int SELECT_PICTURE = 100;
+//    int PICK_IMAGE_MULTIPLE = 1;
+//    ArrayList<String> imagePathSelected = new ArrayList<>();
+//
+//    private ActivityResultLauncher<Intent> imageChooserLauncher;
+//
+//    private ActivityResultLauncher<Intent> audioChooserLauncher;
+//
+//
+//
+//    ArrayList<SlideModel> imageList = new ArrayList<>(); // Create image list
+//
+//    private final int PICK_AUDIO = 1;
+//
+//    private SlideShowFragment slideShowFragment;
+//
+//
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        setContentView(R.layout.slide_show_custom);
+//
+//        SlideShowFragment slideShowFragment = new SlideShowFragment();
+//        slideShowFragment.setActivityInterface(this);
+//
+//        // Thêm fragment vào activity
+//        getSupportFragmentManager().beginTransaction()
+//                .add(R.id.slide_show_container, slideShowFragment)
+//                .commit();
+//    }
+//    @Override
+//    public void ResultchooseImages(ImageSlider imageSlider) {
+//        imageChooserLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+//            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+//                Intent data = result.getData();
+//                if (data.getClipData() != null) {
+//                    int count = data.getClipData().getItemCount();
+//                    for (int i = 0; i < count; i++) {
+//                        Uri imageUri = data.getClipData().getItemAt(i).getUri();
+//                        imageList.add(new SlideModel(imageUri, "", ScaleTypes.CENTER_CROP));
+//                    }
+//                } else {
+//                    Uri imageUri = data.getData();
+//                    imageList.add(new SlideModel(imageUri, "", ScaleTypes.CENTER_CROP));
+//                }
+//                imageSlider.setImageList(imageList, ScaleTypes.CENTER_CROP);
+//            } else {
+//                // show this if no image is selected
+//                Toast.makeText(this, "You haven't picked Image", Toast.LENGTH_LONG).show();
+//            }
+//        });
+//    }
+//
+//    @Override
+//    public void chooseAudio(ImageSlider imageSlider) {
+//        audioChooserLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+//            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+//                Intent data = result.getData();
+//                Uri audioUri = data.getData();
+//                imageSlider.setAudio(audioUri);
+//            } else {
+//                // show this if no audio is selected
+//                Toast.makeText(this, "You haven't picked Audio", Toast.LENGTH_LONG).show();
+//            }
+//        });
+//    }
+//
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == PICK_AUDIO) {
+//            if (resultCode == Activity.RESULT_OK) {
+//                if (data != null) {
+//                    Uri selectedAudioUri = data.getData();
+//                    // Handle the selected audio URI
+//                    // For example, you can use it to play the selected audio or perform any other operation
+//                }
+//            } else if (resultCode == Activity.RESULT_CANCELED) {
+//                // Handle the case when the user canceled the action
+//            }
+//        }
+//    }
+//    @Override
+//    public void showPopupMenu(ImageSlider imageSlider, View view) {
+//        PopupMenu popupMenu = new PopupMenu(this, view);
+//        popupMenu.getMenuInflater().inflate(R.menu.animation_menu, popupMenu.getMenu());
+//
+//        // Thiết lập lắng nghe cho các mục menu
+//        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+//            @Override
+//            public boolean onMenuItemClick(MenuItem item) {
+//                if(item.getTitle() == null){
+//
+//                    return false;
+//                }
+//                imageSlider.setSlideAnimation(AnimationTypes.valueOf((String) item.getTitle()));
+//
+//                return true;
+//            }
+//        });
+//
+//        popupMenu.show();
+//    }
+//
+////    private void addImage(ArrayList<String> imageSelected){
+////        for(int i = 0; i < imageSelected.size(); i++){
+////            //  imageList.add(new SlideModel(imageSelected.get(i), "",null));
+////            //  System.out.println(imageSelected.get(i));
+////            imageList.add(new SlideModel("file:///Bộ nhớ trong/DCIM/0/Camera/IMG_20210909_193443.jpg", "",ScaleTypes.CENTER_CROP));
+////
+////        }
+////        imageSlider.setImageList(imageList,ScaleTypes.CENTER_CROP);
+////        imageSlider.setSlideAnimation(AnimationTypes.ROTATE_DOWN);
+////
+////    }
+//
+//    @Override
+//    public void handlePermission(Context context) {
+//
+//
+//        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(this,
+//                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+//                    PICK_IMAGE_MULTIPLE);
+//        }
+//    }
+//
+//    @Override
+//    public void showPopupMenu(View view, View v) {
+//
+//    }
+//
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        switch (requestCode) {
+//            case SELECT_PICTURE:
+//                for (int i = 0; i < permissions.length; i++) {
+//                    String permission = permissions[i];
+//                    if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+//                        boolean showRationale = ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+//                        if (showRationale) {
+//                            //  Show your own message here
+//                        } else {
+//                            showSettingsAlert();
+//                        }
+//                    }
+//                }
+//        }
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//    }
+//
+//
+//    @Override
+//        public void openImageChooser() {
+//        Intent intent = new Intent(Intent.ACTION_GET_CONTENT, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+//        intent.setType("image/*");
+//        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+//        intent.setAction(Intent.ACTION_GET_CONTENT);
+//        imageChooserLauncher.launch(Intent.createChooser(intent, "Select Picture"));
+//    }
+//    @Override
+//    public void openAudioPicker() {
+//        Intent audio = new Intent();
+//        audio.setType("audio/*");
+//        audio.setAction(Intent.ACTION_OPEN_DOCUMENT);
+//        audioChooserLauncher.launch(Intent.createChooser(audio, "Select audio"));
+//    }
+//
+//
+//
+//    /* Get the real path from the URI */
+//    public String getPathFromURI(Uri contentUri) {
+//        String res = null;
+//        String[] proj = {MediaStore.Images.Media.DATA};
+//        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
+//        if (cursor.moveToFirst()) {
+//            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+//            res = cursor.getString(column_index);
+//        }
+//        cursor.close();
+//        return res;
+//    }
+//
+//
+//    private void showSettingsAlert() {
+//        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+//        alertDialog.setTitle("Alert");
+//        alertDialog.setMessage("App needs to access the Camera.");
+//        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "DONT ALLOW",
+//                new DialogInterface.OnClickListener() {
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        dialog.dismiss();
+//                        //finish();
+//                    }
+//                });
+//        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "SETTINGS",
+//                new DialogInterface.OnClickListener() {
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        dialog.dismiss();
+//                        openAppSettings(android21ktpm3.group07.androidgallery.ui.SlideShow.SlideShowActivity.this);
+//                    }
+//                });
+//        alertDialog.show();
+//    }
+//
+//    public static void openAppSettings(final Activity context) {
+//        if (context == null) {
+//            return;
+//        }
+//        final Intent i = new Intent();
+//        i.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+//        i.addCategory(Intent.CATEGORY_DEFAULT);
+//        i.setData(Uri.parse("package:" + context.getPackageName()));
+//        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        i.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+//        i.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+//        context.startActivity(i);
+//    }
+//
+//}
 package android21ktpm3.group07.androidgallery.ui.SlideShow;
 
 
@@ -83,7 +341,7 @@ public class SlideShowActivity extends AppCompatActivity {
         setContentView(R.layout.slide_show_custom);
         imageSlider = findViewById(R.id.image_slider);
         movieAddLayout = findViewById(R.id.movie_add);
-       movieMusicImageView = findViewById(R.id.movie_music);
+        movieMusicImageView = findViewById(R.id.movie_music);
         movieTransferImageView = findViewById(R.id.movie_transfer);
 
         movieMusicImageView.setOnClickListener(new View.OnClickListener() {
@@ -140,9 +398,9 @@ public class SlideShowActivity extends AppCompatActivity {
             @Override
             public void onTouched(ActionTypes touched, int position) {
                 if (touched == ActionTypes.DOWN) {
-                   imageSlider.stopSliding();
+                    imageSlider.stopSliding();
                 } else if (touched == ActionTypes.UP) {
-                   imageSlider.startSliding(1000);
+                    imageSlider.startSliding(1000);
                 }
             }
         });
@@ -153,7 +411,7 @@ public class SlideShowActivity extends AppCompatActivity {
                     int cout = data.getClipData().getItemCount();
                     for (int i = 0; i < cout; i++) {
                         Uri imageuri = data.getClipData().getItemAt(i).getUri();
-                       imageList.add( new SlideModel(imageuri, "", ScaleTypes.CENTER_CROP));
+                        imageList.add( new SlideModel(imageuri, "", ScaleTypes.CENTER_CROP));
 
                     }
                 } else {

@@ -66,7 +66,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         // TODO: change this later to use other type of resources
         Photo photo = photos.get(position);
-
+System.out.println(photo.getPath());
         Glide.with(context)
                 .load(photo.getPath())
                 .sizeMultiplier(0.5f)

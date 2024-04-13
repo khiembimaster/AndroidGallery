@@ -65,7 +65,7 @@ public class MemoriesViewModel extends ViewModel {
     public List<Photo> getPhotosGroupByDatePrevious() {
        // LocalDate currentDate = LocalDate.now();
 
-        LocalDate specificDate = LocalDate.of(2024, 3, 19);
+        LocalDate specificDate = LocalDate.of(2024, 4, 3);
 
         return photos.stream()
                 .filter(photo -> {

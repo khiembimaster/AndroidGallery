@@ -2,5 +2,16 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+    <FrameLayout
+        android:id="@+id/slide_show_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+         >
+<!--        <include layout="@layout/slide_show_custom" />-->
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
