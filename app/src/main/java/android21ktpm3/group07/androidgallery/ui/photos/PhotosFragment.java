@@ -76,7 +76,6 @@ public class PhotosFragment extends Fragment  {
     public Runnable UpdateRecyclerView = new Runnable() {
         @Override
         public void run() {
-
             PhotosRecyclerAdapter adapter = new PhotosRecyclerAdapter(
                     getActivity(),
                     photosViewModel.getPhotosGroupByDate()

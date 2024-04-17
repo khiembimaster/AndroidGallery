@@ -87,8 +87,6 @@ public class PhotosViewModel extends ViewModel {
                 .collect(Collectors.toList());
     }
 
-
-
     private LocalDate toLocalDate(long epochMillis) {
         return Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate();
     }

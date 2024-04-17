@@ -20,9 +20,4 @@
         android:icon="@drawable/search_fill1_wght500_grad200_opsz24"
         android:title="@string/title_search" />
 
-    <item
-        android:id="@+id/navigation_slideShow"
-        android:icon="@drawable/slideshow"
-        android:title="@string/title_slideShow" />
-
 </menu>
