@@ -1,93 +1,140 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import android.os.Handler;
-import android.os.Looper;
-
-import androidx.core.util.Pair;
+import androidx.databinding.ObservableArrayList;
+import androidx.databinding.ObservableList;
 import androidx.lifecycle.ViewModel;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.Period;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
+import android21ktpm3.group07.androidgallery.helpers.ListHelper;
 import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import android21ktpm3.group07.androidgallery.models.PhotoGroup;
 
 public class PhotosViewModel extends ViewModel {
-    private List<Photo> photos;
-    private PhotoRepository photoRepository;
+    private final String TAG = this.getClass().getSimpleName();
 
-    private List<Photo> selectedPhotos = new ArrayList<>();
+    private final ObservableList<Photo> photosData = new ObservableArrayList<>();
 
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Handler handler = new Handler(Looper.getMainLooper());
+    // TODO: make a list as data source and add cb to update this accordingly
+    private final ObservableList<PhotoGroup> photoGroups = new ObservableArrayList<PhotoGroup>();
 
-    private Runnable updateTask;
 
     // TODO: Switch to DI, create factory
     public PhotosViewModel() {
-    }
+        photosData.addOnListChangedCallback(new ObservableList.OnListChangedCallback<ObservableList<Photo>>() {
+            @Override
+            public void onChanged(ObservableList<Photo> sender) {
+            }
 
-    public void setPhotoRepository(PhotoRepository photoRepository) {
-        this.photoRepository = photoRepository;
-    }
+            @Override
+            public void onItemRangeChanged(ObservableList<Photo> sender, int positionStart,
+                                           int itemCount) {
+            }
 
-    public void setUpdateTask(Runnable updateTask) {
-        this.updateTask = updateTask;
-    }
+            @Override
+            public void onItemRangeInserted(ObservableList<Photo> sender, int positionStart,
+                                            int itemCount) {
+                for (int i = positionStart; i < positionStart + itemCount; i++) {
+                    Photo photo = sender.get(i);
 
-    public List<Photo> getSelectedPhotos() {
-        return selectedPhotos;
-    }
+                    boolean isAdded = false;
+                    for (PhotoGroup group : photoGroups) {
+                        if ((group.getDate()).isEqual(photo.getRepresentativeDate())) {
+                            ListHelper.addAndMaintainSorted(
+                                    group.getPhotos(),
+                                    photo,
+                                    Comparator.comparing(
+                                            Photo::getRepresentativeEpoch,
+                                            Comparator.reverseOrder())
+                            );
 
-    public void addToSelectedPhotos(Photo photo) {
-        selectedPhotos.add(photo);
-    }
+                            isAdded = true;
+                            break;
+                        }
+                    }
 
-    public void removeFromSelectedPhotos(Photo photo) {
-        selectedPhotos.remove(photo);
-    }
+                    if (!isAdded) {
+                        PhotoGroup newGroup = new PhotoGroup(
+                                photo.getRepresentativeDate(),
+                                new ObservableArrayList<>()
+                        );
+                        newGroup.getPhotos().add(photo);
 
-    public void loadPhotos() {
-        executor.execute(() -> {
-            photos = photoRepository.GetAllPhotos();
+                        // photoGroups.add(newGroup);
+                        ListHelper.addAndMaintainSorted(
+                                photoGroups,
+                                newGroup,
+                                Comparator.comparing(PhotoGroup::getDate, Comparator.reverseOrder())
+                        );
+                    }
+                }
 
-            handler.post(updateTask);
+            }
+
+            @Override
+            public void onItemRangeMoved(ObservableList<Photo> sender, int fromPosition,
+                                         int toPosition, int itemCount) {
+            }
+
+            @Override
+            public void onItemRangeRemoved(ObservableList<Photo> sender, int positionStart,
+                                           int itemCount) {
+                for (int i = positionStart; i < positionStart + itemCount; i++) {
+                    Photo photo = sender.get(i);
+                    for (PhotoGroup group : photoGroups) {
+                        if ((group.getDate()).isEqual(photo.getRepresentativeDate())) {
+                            group.getPhotos().remove(photo);
+                            if (group.getPhotos().isEmpty()) {
+                                photoGroups.remove(group);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         });
     }
 
-    public void loadPhotos(long albumBucketID) {
-        executor.execute(() -> {
-            photos = photoRepository.getPhotosInAlbum(albumBucketID);
-
-            handler.post(updateTask);
-        });
+    public ObservableList<PhotoGroup> getPhotoGroups() {
+        return photoGroups;
     }
 
-
-    /**
-     * Groups the photos by their modified date and returns a list of pairs, where the
-     * first element of each pair is the date and the second element is a list of photos
-     * taken on that date. Both lists are sorted in descending order.
-     *
-     * @return A list of pairs of dates and lists of photos.
-     */
-    public List<Pair<LocalDate, List<Photo>>> getPhotosGroupByDate() {
-        return photos.stream()
-                .sorted((photo1, photo2) -> Long.compare(photo2.getModifiedDate(), photo1.getModifiedDate()))
-                .collect(Collectors.groupingBy(photo -> toLocalDate(photo.getModifiedDate())))
-                .entrySet().stream()
-                .sorted((entry1, entry2) -> entry2.getKey().compareTo(entry1.getKey()))
-                .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+    public final ObservableList<Photo> getPhotosData() {
+        return photosData;
     }
 
-    private LocalDate toLocalDate(long epochMillis) {
-        return Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+    // TODO: move the init part to service/executor
+    public void AddPhotos(List<Photo> photoList) {
+        photosData.addAll(photoList);
     }
+
+    public void RemovePhotos(List<Photo> photoList) {
+        photosData.removeAll(photoList);
+    }
+
+    public void test() {
+        Photo test = photoGroups.get(0).getPhotos().get(0);
+
+        long time = Instant.now().plus(Period.ofDays(20)).toEpochMilli();
+        List<Photo> list = new ArrayList<>();
+        list.add(new Photo(
+                test.getPath(),
+                "test",
+                time,
+                time,
+                "",
+                0
+        ));
+        AddPhotos(list);
+    }
+
+    public void test2() {
+        Photo test = photoGroups.get(0).getPhotos().get(0);
+        test.setRemoteUrl("test");
+    }
+
 }

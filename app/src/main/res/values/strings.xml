@@ -56,4 +56,12 @@
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
     <string name="enter_comment">enter comment...</string>
+    <string name="default_web_client_id">993382304871-bo2ut8g1vip0irr69v7916gn3ra2gt6k.apps.googleusercontent.com</string>
+    <string name="web_client_id">993382304871-o9dunctufdhofomqs1g26rqn96tdfgnr.apps.googleusercontent.com</string>
+    <string name="secondary_text">Guest</string>
+    <string name="sub_text">Please sign in to use this feature</string>
+    <string name="searchbar_hint">type some thing here</string>
+    <string name="cancel_backup">Cancel backup</string>
+    <string name="title_delete">delete</string>
+    <string name="content_description_delete_images">Delete images</string>
 </resources>

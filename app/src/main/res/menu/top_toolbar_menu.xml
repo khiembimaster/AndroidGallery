@@ -2,10 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/create_new"
-        android:title="@string/title_create"
-        android:contentDescription="@string/content_description_create"
-        android:icon="@drawable/add_fill1_wght500_grad200_opsz24"
+        android:id="@+id/delete"
+        android:title="@string/title_delete"
+        android:visible="false"
+        android:contentDescription="@string/content_description_delete_images"
+        android:icon="@drawable/baseline_delete_24"
+        android:iconTint="?android:attr/colorControlNormal"
         app:showAsAction="ifRoom" />
 
     <item
@@ -17,9 +19,18 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/create_new"
+        android:title="@string/title_create"
+        android:contentDescription="@string/content_description_create"
+        android:icon="@drawable/add_fill1_wght500_grad200_opsz24"
+        android:iconTint="?android:attr/colorControlNormal"
+        app:showAsAction="ifRoom" />
+
+
+    <item
         android:id="@+id/account"
         android:title="@string/title_account"
         android:contentDescription="@string/content_description_account"
         android:icon="@drawable/account_circle_fill1_wght500_grad200_opsz24"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
 </menu>
