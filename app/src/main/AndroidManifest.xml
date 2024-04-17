@@ -32,7 +32,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidGallery"
-        tools:targetApi="31">
+        tools:targetApi="33">
         <service
             android:name=".services.PhotoService"
             android:enabled="true" />
