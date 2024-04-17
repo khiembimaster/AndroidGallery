@@ -3,10 +3,10 @@ package android21ktpm3.group07.androidgallery.models.remote;
 import com.google.firebase.firestore.PropertyName;
 
 public class PhotoDetails {
-    @PropertyName("local")
+    @PropertyName("path")
     public String localPath;
 
-    @PropertyName("remote")
+    @PropertyName("url")
     public String remoteUrl;
 
     public PhotoDetails() {

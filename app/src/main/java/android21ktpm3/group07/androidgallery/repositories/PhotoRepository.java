@@ -10,9 +10,12 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -22,8 +25,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -31,7 +36,6 @@ import javax.annotation.Nullable;
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
-import android21ktpm3.group07.androidgallery.models.remote.UserDocument;
 
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
@@ -241,24 +245,59 @@ public class PhotoRepository {
             return new ArrayList<>();
         }
 
-        ArrayList<PhotoDetails> result = new ArrayList<>();
+        Task<QuerySnapshot> fetchTask = db.collection("users")
+                .document(user.getUid())
+                .collection("images")
+                .get();
 
-        db.collection("users").document(user.getUid()).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
-                        if (userDocument == null) {
-                            Log.e(TAG, "User document is null");
-                            return;
-                        }
+        try {
+            ArrayList<PhotoDetails> result = new ArrayList<>();
 
-                        result.addAll(userDocument.photos);
-                    }
-                }).addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting remote photos", e);
-                });
+            QuerySnapshot querySnapshot = Tasks.await(fetchTask);
+            for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
+                result.add(documentSnapshot.toObject(PhotoDetails.class));
+            }
 
-        return result;
+            return result;
+
+            // if (querySnapshot.exists()) {
+            //     UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
+            //     if (userDocument != null) {
+            //         Log.d(TAG, "User document: " + userDocument.photos.size());
+            //
+            //         return userDocument.photos;
+            //     }
+            //
+            // }
+        } catch (ExecutionException | InterruptedException e) {
+            Log.d(TAG, "Error getting remote photos", e);
+        }
+
+        return new ArrayList<>();
+    }
+
+
+    /**
+     * Delete photos from the device
+     *
+     * @param photos List of photos to delete
+     * @return List of photos that were successfully deleted
+     */
+    public List<Photo> deletePhotos(List<Photo> photos) {
+        List<Photo> deletedPhotos = new ArrayList<>();
+        for (Photo photo : photos) {
+            Uri uri = Uri.fromFile(new File(photo.getPath()));
+            try {
+                context.getContentResolver().delete(
+                        uri, null, null
+                );
+                deletedPhotos.add(photo);
+            } catch (Exception e) {
+                Log.e(TAG, "Error deleting photo", e);
+            }
+        }
+
+        return deletedPhotos;
     }
 
     public void test() {
@@ -269,7 +308,7 @@ public class PhotoRepository {
 
         int count = 0;
         for (Photo photo : photos) {
-            if (count == 10) break;
+            if (count == 2) break;
 
             Uri file = Uri.fromFile(new File(photo.getPath()));
             String fileName = file.getLastPathSegment();
@@ -280,11 +319,15 @@ public class PhotoRepository {
                     .child(System.currentTimeMillis() + "-" + fileName);
 
             UploadTask uploadTask = imageRef.putFile(file);
-            uploadTask.addOnFailureListener(e -> {
-                Log.e(TAG, "Error uploading image: " + fileName, e);
-            }).addOnPausedListener(taskSnapshot -> {
-                Log.d(TAG, "Upload is paused: " + fileName);
-            });
+            uploadTask
+                    .addOnSuccessListener(taskSnapshot -> {
+                        Log.d(TAG, "Image uploaded: " + fileName);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error uploading image: " + fileName, e);
+                    }).addOnPausedListener(taskSnapshot -> {
+                        Log.d(TAG, "Upload is paused: " + fileName);
+                    });
 
             Task<Uri> getUrlTask = uploadTask.continueWithTask(task -> {
                 if (!task.isSuccessful())

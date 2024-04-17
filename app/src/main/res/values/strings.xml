@@ -495,4 +495,6 @@
             <item>Storm</item>
             <item>Helmet</item>
         </string-array>
+    <string name="title_delete">delete</string>
+    <string name="content_description_delete_images">Delete images</string>
 </resources>
