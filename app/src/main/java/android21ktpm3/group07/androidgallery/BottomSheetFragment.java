@@ -11,7 +11,6 @@ import android.widget.TextView;
 
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkContinuation;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkQuery;
@@ -22,7 +21,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -113,18 +111,19 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                             if (workInfo != null) {
                                 updateProgress(workInfo);
                             }
+                            Log.d(TAG, "uploadWorkRequest: " + workInfo.getState());
                         });
-                WorkContinuation workContinuation = workManager
-                        .beginUniqueWork("backupWork", ExistingWorkPolicy.REPLACE, prepareWorkRequest)
-                        .then(uploadWorkRequest);
+                // WorkContinuation workContinuation = workManager
+                //         .beginUniqueWork("backupWork", ExistingWorkPolicy.REPLACE,
+                //         prepareWorkRequest)
+                //         .then(uploadWorkRequest);
                 binding.btnBackupData.setOnClickListener(v -> {
-                    workContinuation.enqueue();
+                    // workContinuation.enqueue();
+                    workManager.enqueueUniqueWork("backupWork", ExistingWorkPolicy.REPLACE,
+                            uploadWorkRequest);
                 });
             }
         });
-
-
-
 
 
         binding.btnLogout.setOnClickListener(v -> {
@@ -160,6 +159,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                 case RUNNING:
                     if (workInfo.getProgress() != null && workInfo.getProgress().getKeyValueMap().containsKey("total_count")) {
                         long progress = workInfo.getProgress().getLong("total_count", 0);
+                        Log.d(TAG, "updateProgress: " + progress);
                         // Update your UI with progress here
                         UserViewModel.setTotalImagesLeft(progress);
                     }
@@ -175,8 +175,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                     UserViewModel.setCanUpload(true);
                     break;
             }
-        }
-        else UserViewModel.setTotalImagesLeft(0L);
+        } else UserViewModel.setTotalImagesLeft(0L);
     }
 
     public void showUserInfo(FirebaseUser user) {

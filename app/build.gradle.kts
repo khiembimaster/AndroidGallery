@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
 
+    id("com.google.dagger.hilt.android")
+
     // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
 }
@@ -76,4 +78,8 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    annotationProcessor("com.google.dagger:hilt-android-compiler:2.51.1")
 }

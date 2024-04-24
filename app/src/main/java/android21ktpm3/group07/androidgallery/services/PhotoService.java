@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -99,7 +100,13 @@ public class PhotoService extends Service {
 
     public void updateSyncingStatus(List<Photo> localPhotos) {
         executor.execute(() -> {
-            ArrayList<PhotoDetails> remotePhotos = photoRepository.getAllRemotePhotos();
+            List<PhotoDetails> remotePhotos;
+            try {
+                remotePhotos = photoRepository.getAllRemotePhotos();
+            } catch (ExecutionException | InterruptedException e) {
+                remotePhotosLoadedCallback.onCompleted();
+                return;
+            }
             Log.d("PhotoService", "Getting remote photos: " + remotePhotos.size());
 
             HashMap<String, PhotoDetails> remotePhotosMap = new HashMap<>(

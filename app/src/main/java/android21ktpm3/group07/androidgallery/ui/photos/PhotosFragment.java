@@ -239,4 +239,8 @@ public class PhotosFragment extends Fragment {
             initializeRecyclerView();
         }
     }
+
+    private void test() {
+        
+    }
 }

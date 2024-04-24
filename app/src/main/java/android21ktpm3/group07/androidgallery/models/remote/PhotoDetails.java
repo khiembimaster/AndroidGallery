@@ -9,11 +9,15 @@ public class PhotoDetails {
     @PropertyName("url")
     public String remoteUrl;
 
+    @PropertyName("name")
+    public String name;
+
     public PhotoDetails() {
     }
 
-    public PhotoDetails(String localPath, String remoteUrl) {
+    public PhotoDetails(String localPath, String remoteUrl, String name) {
         this.localPath = localPath;
         this.remoteUrl = remoteUrl;
+        this.name = name;
     }
 }

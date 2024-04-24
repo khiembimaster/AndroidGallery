@@ -22,13 +22,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.AggregateQuery;
 import com.google.firebase.firestore.AggregateQuerySnapshot;
 import com.google.firebase.firestore.AggregateSource;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageException;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.mlkit.vision.common.InputImage;
@@ -38,20 +37,12 @@ import com.google.mlkit.vision.label.ImageLabeling;
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.io.File;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
-import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
-
-public class PhotoUploadWorker extends Worker {
+public class _OldPhotoUploadWorker extends Worker {
     private final FirebaseFirestore db;
     private final FirebaseUser user;
     private final FirebaseStorage storage = FirebaseStorage.getInstance();
@@ -60,7 +51,7 @@ public class PhotoUploadWorker extends Worker {
     private final ImageLabeler labeler;
     private long count = 0;
 
-    public PhotoUploadWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public _OldPhotoUploadWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         // Or, to set the minimum confidence required:
         ImageLabelerOptions options =
@@ -71,11 +62,13 @@ public class PhotoUploadWorker extends Worker {
         db = FirebaseFirestore.getInstance();
         FirebaseAuth auth = FirebaseAuth.getInstance();
         user = auth.getCurrentUser();
+
+
     }
 
-    @Deprecated
     @NonNull
-    public Result oldDoWork() {
+    @Override
+    public Result doWork() {
         Query query = db.collection("users").document(user.getUid())
                 .collection("images")
                 .whereEqualTo("status", "pending");
@@ -114,7 +107,7 @@ public class PhotoUploadWorker extends Worker {
 
                     tasks.add(Tasks.whenAll(uriTask).addOnSuccessListener(aVoid -> {
                         document.getReference().update("status", "completed");
-                        PhotoUploadWorker.this.setProgressAsync(new Data.Builder()
+                        _OldPhotoUploadWorker.this.setProgressAsync(new Data.Builder()
                                 .putLong(TOTAL_COUNT_KEY, --count)
                                 .build());
                     }));
@@ -143,97 +136,6 @@ public class PhotoUploadWorker extends Worker {
         }
     }
 
-    @NonNull
-    @Override
-    public Result doWork() {
-        PhotoRepository photoRepository = new PhotoRepository(getApplicationContext());
-        photoRepository.setFirebaseUser(user);
-        List<Photo> localPhotos = photoRepository.GetAllPhotos();
-
-        DocumentReference userRef = db.collection("users").document(user.getUid());
-        CollectionReference userImagesRef = userRef.collection("images");
-
-        try {
-            ImageDocument imageDocument;
-            DocumentReference imageDocumentRef;
-            ArrayList<Photo> photosToUpload = new ArrayList<>();
-
-            PhotoRepository.ImageDocumentReponse response = photoRepository.getImageDocument();
-            if (response != null) {
-                imageDocumentRef = response.documentRef;
-                imageDocument = response.imageDocument;
-                List<PhotoDetails> remotePhotos = imageDocument.photos;
-
-                HashSet<String> remotePhotosMap = new HashSet<>(
-                        (int) Math.ceil(remotePhotos.size() / 0.75)
-                );
-                for (PhotoDetails remotePhoto : remotePhotos) {
-                    remotePhotosMap.add(remotePhoto.localPath);
-                }
-
-                for (Photo localPhoto : localPhotos) {
-                    if (!remotePhotosMap.contains(localPhoto.getPath())) {
-                        photosToUpload.add(localPhoto);
-                    }
-                }
-            } else {
-                imageDocumentRef = null;
-                imageDocument = new ImageDocument();
-            }
-
-
-            Log.d(TAG, "to upload: " + photosToUpload.size());
-
-            count = photosToUpload.size();
-            setProgressAsync(new Data.Builder()
-                    .putLong(TOTAL_COUNT_KEY, count)
-                    .build());
-
-            ArrayList<Task<Uri>> uploadTasks = new ArrayList<>();
-            for (Photo photo : photosToUpload) {
-                Task<Uri> task = uploadImage(Uri.fromFile(new File(photo.getPath())));
-                task.addOnSuccessListener(uri -> {
-                    imageDocument.photos.add(new PhotoDetails(
-                            photo.getPath(),
-                            uri.toString(),
-                            photo.getName()
-                    ));
-                    PhotoUploadWorker.this.setProgressAsync(new Data.Builder()
-                            .putLong(TOTAL_COUNT_KEY, --count)
-                            .build());
-                    Log.d(TAG, "progress: " + count);
-                });
-
-                uploadTasks.add(task);
-            }
-
-            Tasks.await(Tasks.whenAll(uploadTasks).addOnSuccessListener(aVoid -> {
-                // Switch all the time to using server time
-                imageDocument.updatedAt = Date.from(Instant.now());
-                if (imageDocumentRef != null) {
-                    imageDocumentRef.set(imageDocument).addOnSuccessListener(documentReference -> {
-                        Log.d(TAG, "Finished uploading images: "
-                                + imageDocument.photos.size() + "/" + photosToUpload.size());
-                    });
-                } else {
-                    userImagesRef.add(imageDocument).addOnSuccessListener(documentReference -> {
-                        Log.d(TAG, "Finished uploading images: "
-                                + imageDocument.photos.size() + "/" + photosToUpload.size());
-                    });
-
-                }
-            }));
-
-
-        } catch (ExecutionException e) {
-            return Result.failure();
-        } catch (InterruptedException e) {
-            return Result.retry();
-        }
-
-        return Result.success();
-    }
-
     // TODO: Create a service to upload images to Firebase Storage
     private Task<Uri> uploadImage(Uri file) {
         // Create a storage reference from our app
@@ -241,14 +143,19 @@ public class PhotoUploadWorker extends Worker {
         // Create file metadata including the content type
 
         // Upload file to Firebase Storage
-        StorageReference imageRef = storageRef.child("user")
-                .child(user.getUid())
-                .child(System.currentTimeMillis() + "-" + file.getLastPathSegment());
+        StorageReference imageRef =
+                storageRef.child("user/" + user.getUid() + "/" + file.getLastPathSegment());
         UploadTask uploadTask = imageRef.putFile(file);
         uploadTask.addOnFailureListener(e -> {
             Log.e(TAG, "Error when upload your images", e);
+            int errorCode = ((StorageException) e).getErrorCode();
+            String errorMessage = e.getMessage();
         }).addOnSuccessListener(taskSnapshot -> {
             Log.d(TAG, "Your images stored successfully!");
+        }).addOnProgressListener(taskSnapshot -> {
+            double progress =
+                    (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            Log.d(TAG, "Upload is " + progress + "% done");
         }).addOnPausedListener(taskSnapshot -> {
             Log.d(TAG, "Upload is paused");
         });

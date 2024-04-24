@@ -12,6 +12,7 @@ import android.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -35,6 +36,7 @@ import javax.annotation.Nullable;
 
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
 
 public class PhotoRepository {
@@ -239,10 +241,15 @@ public class PhotoRepository {
         this.user = user;
     }
 
-    public ArrayList<PhotoDetails> getAllRemotePhotos() {
+
+    /**
+     * @throws IllegalStateException when user is not logged in to Firebase
+     */
+    public List<PhotoDetails> getAllRemotePhotos() throws
+            ExecutionException, InterruptedException {
         if (user == null) {
             Log.d(TAG, "User is null");
-            return new ArrayList<>();
+            throw new IllegalStateException("User is null");
         }
 
         Task<QuerySnapshot> fetchTask = db.collection("users")
@@ -250,30 +257,41 @@ public class PhotoRepository {
                 .collection("images")
                 .get();
 
-        try {
-            ArrayList<PhotoDetails> result = new ArrayList<>();
-
-            QuerySnapshot querySnapshot = Tasks.await(fetchTask);
-            for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
-                result.add(documentSnapshot.toObject(PhotoDetails.class));
-            }
-
-            return result;
-
-            // if (querySnapshot.exists()) {
-            //     UserDocument userDocument = documentSnapshot.toObject(UserDocument.class);
-            //     if (userDocument != null) {
-            //         Log.d(TAG, "User document: " + userDocument.photos.size());
-            //
-            //         return userDocument.photos;
-            //     }
-            //
-            // }
-        } catch (ExecutionException | InterruptedException e) {
-            Log.d(TAG, "Error getting remote photos", e);
+        QuerySnapshot querySnapshot = Tasks.await(fetchTask);
+        for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
+            ImageDocument imageDocument = documentSnapshot.toObject(ImageDocument.class);
+            return imageDocument.photos; // only 1 doc per collection atm
         }
 
         return new ArrayList<>();
+    }
+
+    /**
+     * @throws IllegalStateException when user is not logged in to Firebase
+     */
+    @Nullable
+    public ImageDocumentReponse getImageDocument() throws
+            ExecutionException, InterruptedException {
+        if (user == null) {
+            Log.d(TAG, "User is null");
+            throw new IllegalStateException("User is null");
+        }
+
+        Task<QuerySnapshot> fetchTask = db.collection("users")
+                .document(user.getUid())
+                .collection("images")
+                .get();
+
+        QuerySnapshot querySnapshot = Tasks.await(fetchTask);
+        for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
+            // only 1 document per collection atm
+            return new ImageDocumentReponse(
+                    documentSnapshot.toObject(ImageDocument.class),
+                    documentSnapshot.getReference()
+            );
+        }
+
+        return null;
     }
 
 
@@ -352,6 +370,17 @@ public class PhotoRepository {
             });
 
             count += 1;
+        }
+    }
+
+    public class ImageDocumentReponse {
+        public ImageDocument imageDocument;
+        public DocumentReference documentRef;
+
+        public ImageDocumentReponse(ImageDocument imageDocument,
+                                    DocumentReference documentReference) {
+            this.imageDocument = imageDocument;
+            this.documentRef = documentReference;
         }
     }
 }
