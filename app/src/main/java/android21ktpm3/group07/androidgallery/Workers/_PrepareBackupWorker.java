@@ -30,11 +30,11 @@ import java.util.concurrent.ExecutionException;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 
-public class PrepareBackupWorker extends Worker {
+public class _PrepareBackupWorker extends Worker {
     private final FirebaseFirestore db;
     private final FirebaseUser user;
 
-    public PrepareBackupWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public _PrepareBackupWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
 
         db = FirebaseFirestore.getInstance();

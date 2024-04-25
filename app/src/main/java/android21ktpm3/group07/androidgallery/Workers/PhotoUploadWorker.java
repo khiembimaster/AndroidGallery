@@ -19,15 +19,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.AggregateQuery;
-import com.google.firebase.firestore.AggregateQuerySnapshot;
-import com.google.firebase.firestore.AggregateSource;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -41,6 +37,7 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +57,8 @@ public class PhotoUploadWorker extends Worker {
     private final ImageLabeler labeler;
     private long count = 0;
 
+    private final DocumentReference userRef;
+
     public PhotoUploadWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         // Or, to set the minimum confidence required:
@@ -71,76 +70,11 @@ public class PhotoUploadWorker extends Worker {
         db = FirebaseFirestore.getInstance();
         FirebaseAuth auth = FirebaseAuth.getInstance();
         user = auth.getCurrentUser();
-    }
 
-    @Deprecated
-    @NonNull
-    public Result oldDoWork() {
-        Query query = db.collection("users").document(user.getUid())
-                .collection("images")
-                .whereEqualTo("status", "pending");
-
-        AggregateQuery aggregateQuery = query.count();
-        Task<QuerySnapshot> queryTask = query.get();
-
-        aggregateQuery.get(AggregateSource.SERVER).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                // Count fetched successfully
-                AggregateQuerySnapshot snapshot = task.getResult();
-                count = snapshot.getCount();
-                setProgressAsync(new Data.Builder()
-                        .putLong(TOTAL_COUNT_KEY, count)
-                        .build());
-                Log.d(TAG, "Count: " + snapshot.getCount());
-            } else {
-                Log.d(TAG, "Count failed: ", task.getException());
-            }
-        });
-
-        Task<List<Task<?>>> allTasks = queryTask.continueWithTask(task -> {
-            if (task.isSuccessful()) {
-                List<Task<Void>> tasks = new ArrayList<>();
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    Log.d(TAG, document.getId() + " => " + document.getData());
-                    Map<String, Object> data = document.getData();
-                    String path = (String) data.get("path");
-                    assert path != null;
-                    Uri file = Uri.fromFile(new File(path));
-                    labelImage(document, file);
-                    Task<Uri> uriTask = uploadImage(file);
-                    uriTask.addOnSuccessListener(uri -> {
-                        document.getReference().update("url", uri.toString());
-                    });
-
-                    tasks.add(Tasks.whenAll(uriTask).addOnSuccessListener(aVoid -> {
-                        document.getReference().update("status", "completed");
-                        PhotoUploadWorker.this.setProgressAsync(new Data.Builder()
-                                .putLong(TOTAL_COUNT_KEY, --count)
-                                .build());
-                    }));
-                }
-                return Tasks.whenAllComplete(tasks);
-            } else {
-                Log.d(TAG, "Error getting documents: ", task.getException());
-            }
-            return null;
-        });
-
-        allTasks.addOnSuccessListener(aVoid -> {
-            Log.d(TAG, "All tasks completed successfully");
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "Error when upload your images", e);
-        });
-
-        try {
-            Tasks.await(allTasks);  // This will block until all upload tasks have completed
-            Log.d(TAG, "All tasks completed successfully");
-            return Result.success();
-        } catch (ExecutionException e) {
-            return Result.failure();
-        } catch (InterruptedException e) {
-            return Result.retry();
+        if (user == null) {
+            throw new IllegalStateException("User is not logged in");
         }
+        userRef = db.collection("users").document(user.getUid());
     }
 
     @NonNull
@@ -150,8 +84,9 @@ public class PhotoUploadWorker extends Worker {
         photoRepository.setFirebaseUser(user);
         List<Photo> localPhotos = photoRepository.GetAllPhotos();
 
-        DocumentReference userRef = db.collection("users").document(user.getUid());
         CollectionReference userImagesRef = userRef.collection("images");
+
+        boolean test = true;
 
         try {
             ImageDocument imageDocument;
@@ -159,6 +94,12 @@ public class PhotoUploadWorker extends Worker {
             ArrayList<Photo> photosToUpload = new ArrayList<>();
 
             PhotoRepository.ImageDocumentReponse response = photoRepository.getImageDocument();
+
+            if (test && response != null) {
+                Tasks.await(response.documentRef.delete());
+                response = null;
+            }
+
             if (response != null) {
                 imageDocumentRef = response.documentRef;
                 imageDocument = response.imageDocument;
@@ -179,17 +120,20 @@ public class PhotoUploadWorker extends Worker {
             } else {
                 imageDocumentRef = null;
                 imageDocument = new ImageDocument();
+                photosToUpload.addAll(localPhotos);
             }
 
-
-            Log.d(TAG, "to upload: " + photosToUpload.size());
+            if (photosToUpload.isEmpty()) {
+                Log.d(TAG, "No photos to upload");
+                return Result.success();
+            }
 
             count = photosToUpload.size();
             setProgressAsync(new Data.Builder()
                     .putLong(TOTAL_COUNT_KEY, count)
                     .build());
 
-            ArrayList<Task<Uri>> uploadTasks = new ArrayList<>();
+            ArrayList<Task<Uri>> uploadingTasks = new ArrayList<>();
             for (Photo photo : photosToUpload) {
                 Task<Uri> task = uploadImage(Uri.fromFile(new File(photo.getPath())));
                 task.addOnSuccessListener(uri -> {
@@ -204,33 +148,50 @@ public class PhotoUploadWorker extends Worker {
                     Log.d(TAG, "progress: " + count);
                 });
 
-                uploadTasks.add(task);
+                uploadingTasks.add(task);
             }
 
-            Tasks.await(Tasks.whenAll(uploadTasks).addOnSuccessListener(aVoid -> {
-                // Switch all the time to using server time
-                imageDocument.updatedAt = Date.from(Instant.now());
-                if (imageDocumentRef != null) {
-                    imageDocumentRef.set(imageDocument).addOnSuccessListener(documentReference -> {
-                        Log.d(TAG, "Finished uploading images: "
-                                + imageDocument.photos.size() + "/" + photosToUpload.size());
-                    });
-                } else {
-                    userImagesRef.add(imageDocument).addOnSuccessListener(documentReference -> {
-                        Log.d(TAG, "Finished uploading images: "
-                                + imageDocument.photos.size() + "/" + photosToUpload.size());
+            Task<Void> finishedUploadingTask = Tasks.whenAll(uploadingTasks)
+                    .addOnSuccessListener(aVoid -> {
+                        // Switch all the time to using server time
+                        imageDocument.updatedAt = Date.from(Instant.now());
+                        if (imageDocumentRef != null) {
+                            imageDocumentRef.set(imageDocument).addOnSuccessListener(documentReference -> {
+                                Log.d(TAG, "Finished uploading images: "
+                                        + imageDocument.photos.size() + "/" + photosToUpload.size());
+                            });
+                        } else {
+                            userImagesRef.add(imageDocument).addOnSuccessListener(documentReference -> {
+                                Log.d(TAG, "Finished uploading images: "
+                                        + imageDocument.photos.size() + "/" + photosToUpload.size());
+                            });
+                        }
                     });
 
+            Task<Void> labellingTask = finishedUploadingTask.continueWith(task -> {
+                if (!task.isSuccessful()) return null;
+
+                for (Photo photo : photosToUpload) {
+                    labelImage(Uri.fromFile(new File(photo.getPath())));
                 }
-            }));
 
+                return null;
+            });
+            labellingTask.addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "Finished labelling images");
+            });
+
+            Tasks.await(labellingTask);
 
         } catch (ExecutionException e) {
+            Log.e(TAG, "Failure", e);
             return Result.failure();
         } catch (InterruptedException e) {
+            Log.e(TAG, "Retry", e);
             return Result.retry();
         }
 
+        Log.d(TAG, "Finished uploading and labelling images");
         return Result.success();
     }
 
@@ -262,8 +223,7 @@ public class PhotoUploadWorker extends Worker {
         return urlTask;
     }
 
-    private void labelImage(QueryDocumentSnapshot document, Uri file) throws ExecutionException,
-            InterruptedException {
+    private void labelImage(Uri file) throws ExecutionException, InterruptedException {
         Glide.with(getApplicationContext())
                 .asBitmap()
                 .load(file)
@@ -275,13 +235,20 @@ public class PhotoUploadWorker extends Worker {
                         InputImage image = InputImage.fromBitmap(resource, 0);
                         labeler.process(image)
                                 .addOnSuccessListener(labels -> {
-                                    List<String> tags = new ArrayList<>();
                                     for (ImageLabel label : labels) {
                                         String text = label.getText();
                                         float confidence = label.getConfidence();
-                                        tags.add(text);
+
+                                        Log.d(TAG,
+                                                "Label: " + text + " with confidence: " + confidence);
+
+                                        Map<String, Object> data = new HashMap<>();
+                                        data.put("images", FieldValue.arrayUnion(file.toString()));
+
+
+                                        userRef.collection("tags").document(text)
+                                                .set(data, SetOptions.merge());
                                     }
-                                    document.getReference().update("tags", tags);
                                 }).addOnFailureListener(e -> {
                                     Log.e(TAG, "Error when label your images", e);
                                 });
@@ -289,8 +256,9 @@ public class PhotoUploadWorker extends Worker {
 
                     @Override
                     public void onLoadCleared(@Nullable Drawable placeholder) {
-                        // remove the resource
+
                     }
                 });
+
     }
 }

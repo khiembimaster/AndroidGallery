@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Locale;
 
 import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
-import android21ktpm3.group07.androidgallery.Workers.PrepareBackupWorker;
+import android21ktpm3.group07.androidgallery.Workers._PrepareBackupWorker;
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
@@ -101,7 +101,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
 
                 Log.d(TAG, "No work is running");
                 OneTimeWorkRequest prepareWorkRequest =
-                        new OneTimeWorkRequest.Builder(PrepareBackupWorker.class)
+                        new OneTimeWorkRequest.Builder(_PrepareBackupWorker.class)
                                 .build();
                 OneTimeWorkRequest uploadWorkRequest =
                         new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
