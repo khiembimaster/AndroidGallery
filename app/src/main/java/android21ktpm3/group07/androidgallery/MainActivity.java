@@ -48,7 +48,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
+import android21ktpm3.group07.androidgallery.Workers._PhotoSyncWorker;
 import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
 import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements
     FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     //--------------------------------------------
-    private PhotoUploadWorker photoUploadWorker;
+    private _PhotoSyncWorker photoSyncWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

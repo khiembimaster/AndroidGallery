@@ -24,8 +24,7 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.Collections;
 import java.util.Locale;
 
-import android21ktpm3.group07.androidgallery.Workers.PhotoUploadWorker;
-import android21ktpm3.group07.androidgallery.Workers._PrepareBackupWorker;
+import android21ktpm3.group07.androidgallery.Workers.PhotoSyncWorker;
 import android21ktpm3.group07.androidgallery.databinding.FragmentBottomSheetBinding;
 
 public class BottomSheetFragment extends BottomSheetDialogFragment {
@@ -48,6 +47,7 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                              Bundle savedInstanceState) {
 
         Log.d(TAG, "onCreateView: ");
+        Log.d(TAG, Thread.currentThread().getName() + " " + Thread.currentThread().getId());
 
         // Inflate the layout for this fragment
         binding = FragmentBottomSheetBinding.inflate(inflater, container, false);
@@ -100,13 +100,19 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                 updateProgress(null);
 
                 Log.d(TAG, "No work is running");
-                OneTimeWorkRequest prepareWorkRequest =
-                        new OneTimeWorkRequest.Builder(_PrepareBackupWorker.class)
+
+                // OneTimeWorkRequest prepareWorkRequest =
+                //         new OneTimeWorkRequest.Builder(_PrepareBackupWorker.class)
+                //                 .build();
+                // OneTimeWorkRequest uploadWorkRequest =
+                //         new OneTimeWorkRequest.Builder(_PhotoSyncWorker.class)
+                //                 .build();
+
+                OneTimeWorkRequest syncWorkRequest =
+                        new OneTimeWorkRequest.Builder(PhotoSyncWorker.class)
                                 .build();
-                OneTimeWorkRequest uploadWorkRequest =
-                        new OneTimeWorkRequest.Builder(PhotoUploadWorker.class)
-                                .build();
-                workManager.getWorkInfoByIdLiveData(uploadWorkRequest.getId())
+
+                workManager.getWorkInfoByIdLiveData(syncWorkRequest.getId())
                         .observe(this, workInfo -> {
                             if (workInfo != null) {
                                 updateProgress(workInfo);
@@ -119,8 +125,11 @@ public class BottomSheetFragment extends BottomSheetDialogFragment {
                 //         .then(uploadWorkRequest);
                 binding.btnBackupData.setOnClickListener(v -> {
                     // workContinuation.enqueue();
-                    workManager.enqueueUniqueWork("backupWork", ExistingWorkPolicy.REPLACE,
-                            uploadWorkRequest);
+                    workManager.enqueueUniqueWork(
+                            "syncWork",
+                            ExistingWorkPolicy.KEEP,
+                            syncWorkRequest
+                    );
                 });
             }
         });

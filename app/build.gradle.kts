@@ -60,8 +60,8 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
     // Authentication
-    implementation("androidx.credentials:credentials:1.3.0-alpha02")
-    implementation("androidx.credentials:credentials-play-services-auth:1.3.0-alpha02")
+    implementation("androidx.credentials:credentials:1.3.0-alpha03")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0-alpha03")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:32.8.1"))
