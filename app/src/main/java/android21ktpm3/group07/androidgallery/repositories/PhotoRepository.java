@@ -1,25 +1,32 @@
 package android21ktpm3.group07.androidgallery.repositories;
 
-import android.content.ContentResolver;
+import android.annotation.SuppressLint;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.activity.result.IntentSenderRequest;
+import androidx.annotation.NonNull;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -27,38 +34,77 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
+import android21ktpm3.group07.androidgallery.helpers.IntentSenderLauncher;
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
+import android21ktpm3.group07.androidgallery.services.JobSchedulerService;
+import dagger.hilt.android.qualifiers.ApplicationContext;
 
+/**
+ * Remember to call destruct() when done using the repository
+ */
+@Singleton
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
     private final Context context;
-    private final ContentResolver contentResolver;
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseStorage storage = FirebaseStorage.getInstance();
+    private final MediaStoreChangedBroadcastReceiver mediaStoreChangedBroadcastReceiver;
+
+    private final List<GetAllLocalPhotosCallback> getAllLocalPhotosCallbacks = new ArrayList<>();
+    private final List<GetAllRemotePhotosCallback> getAllRemotePhotosCallbacks = new ArrayList<>();
+    private final List<MediaChangedCallback> mediaChangedCallbacks = new ArrayList<>();
+
     @Nullable
     private FirebaseUser user;
 
-    public PhotoRepository(ContentResolver contentResolver) {
-        this.contentResolver = contentResolver;
-        this.context = null;
+    @Inject
+    public PhotoRepository(@ApplicationContext Context context) {
+        this.context = context;
+        this.mediaStoreChangedBroadcastReceiver = new MediaStoreChangedBroadcastReceiver();
+
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+                mediaStoreChangedBroadcastReceiver,
+                new IntentFilter(JobSchedulerService.ACTION_MEDIA_STORE_CHANGED)
+        );
     }
 
+    public void destruct() {
+        LocalBroadcastManager.getInstance(context).unregisterReceiver(mediaStoreChangedBroadcastReceiver);
+    }
 
-    public PhotoRepository(Context context) {
+    public void addGetAllLocalPhotosCallback(@NonNull GetAllLocalPhotosCallback callback) {
+        getAllLocalPhotosCallbacks.add(callback);
+    }
 
-        this.context = context;
-        this.contentResolver = null;
+    public void removeGetAllLocalPhotosCallback(@NonNull GetAllLocalPhotosCallback callback) {
+        getAllLocalPhotosCallbacks.remove(callback);
+    }
+
+    public void addGetAllRemotePhotosCallback(@NonNull GetAllRemotePhotosCallback callback) {
+        getAllRemotePhotosCallbacks.add(callback);
+    }
+
+    public void removeGetAllRemotePhotosCallback(@NonNull GetAllRemotePhotosCallback callback) {
+        getAllRemotePhotosCallbacks.remove(callback);
+    }
+
+    public void addMediaChangedCallback(@NonNull MediaChangedCallback callback) {
+        mediaChangedCallbacks.add(callback);
+    }
+
+    public void removeMediaChangedCallback(@NonNull MediaChangedCallback callback) {
+        mediaChangedCallbacks.remove(callback);
     }
 
     public ArrayList<Album> GetAlbums() {
@@ -77,13 +123,15 @@ public class PhotoRepository {
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
 
-        try (Cursor cursor = context.getContentResolver().query(
-                collection,
-                projection,
-                null,
-                null,
-                null)) {
-            if (cursor.moveToFirst()) {
+        try (
+                Cursor cursor = context.getContentResolver().query(
+                        collection,
+                        projection,
+                        null,
+                        null,
+                        null)
+        ) {
+            if (cursor != null && cursor.moveToFirst()) {
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int DateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
                 int BucketIDColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
@@ -121,7 +169,7 @@ public class PhotoRepository {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public ArrayList<Photo> GetAllPhotos() {
+    private ArrayList<Photo> getLocalPhotos(Long albumBucketID) {
         Uri collection;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
@@ -137,14 +185,25 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DESCRIPTION
-
         };
 
-        ArrayList<Photo> photos = new ArrayList<>();
+        String selection = null;
+        String[] selectionArgs = null;
+        if (albumBucketID != null) {
+            selection = MediaStore.Images.Media.BUCKET_ID + " = ?";
+            selectionArgs = new String[]{String.valueOf(albumBucketID)};
+        }
 
-        try (Cursor cursor = context.getContentResolver().query(collection, projection, null,
-                null, null)) {
-            if (cursor.moveToFirst()) {
+        ArrayList<Photo> photos = new ArrayList<>();
+        try (Cursor cursor = context.getContentResolver().query(
+                collection,
+                projection,
+                selection,
+                selectionArgs,
+                null)
+        ) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media._ID);
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
                 int ModifiedDateColumnIdx =
@@ -152,15 +211,21 @@ public class PhotoRepository {
                 int TakenDateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
+
                 do {
+                    long id = cursor.getLong(idColumnIdx);
                     String path = cursor.getString(PathColumnIdx);
                     String name = cursor.getString(NameColumnIdx);
                     long modifiedDate = cursor.getLong(ModifiedDateColumnIdx) * 1000; //  s to ms
                     long takenDate = cursor.getLong(TakenDateColumnIdx);
                     String tags = cursor.getString(tagsColumnIdx);
                     double fileSize = cursor.getDouble(fileSizeColumnIdx);
-                    if (path == null) continue;
-                    photos.add(new Photo(path, name, modifiedDate, takenDate, tags, fileSize));
+
+                    Uri contentUri = ContentUris.withAppendedId(collection, id);
+
+                    photos.add(new Photo(
+                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri
+                    ));
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
@@ -170,56 +235,27 @@ public class PhotoRepository {
         return photos;
     }
 
+    /**
+     * Get all photos from the device
+     * <p>
+     * Callback: {@link #addGetAllLocalPhotosCallback(GetAllLocalPhotosCallback)}
+     */
+    public void getAllLocalPhotos() {
+        ArrayList<Photo> result = getLocalPhotos(null);
+        for (GetAllLocalPhotosCallback callback : getAllLocalPhotosCallbacks) {
+            callback.onCompleted(result);
+        }
+    }
+
+    /**
+     * Get all photos from the device directly without using callback
+     */
+    public List<Photo> getAllLocalPhotosDirectly() {
+        return getLocalPhotos(null);
+    }
+
     public ArrayList<Photo> getPhotosInAlbum(long albumBucketID) {
-        Uri collection;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
-        } else {
-            collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        }
-
-        String[] projection = new String[]{
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DATA,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.DATE_MODIFIED,
-                MediaStore.Images.Media.DATE_TAKEN,
-                MediaStore.Images.Media.BUCKET_ID,
-                MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DESCRIPTION
-        };
-
-        ArrayList<Photo> photos = new ArrayList<>();
-
-        try (Cursor cursor = context.getContentResolver().query(
-                collection,
-                projection,
-                MediaStore.Images.Media.BUCKET_ID + " = ?",
-                new String[]{String.valueOf(albumBucketID)},
-                null)) {
-            if (cursor.moveToFirst()) {
-                int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-                int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
-                int modifiedDateColumnIdx =
-                        cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
-                int takenDateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
-                int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
-                int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
-                do {
-                    String path = cursor.getString(PathColumnIdx);
-                    String name = cursor.getString(NameColumnIdx);
-                    long modifiedDate = cursor.getLong(modifiedDateColumnIdx) * 1000; /// s to ms
-                    long takenDate = cursor.getLong(takenDateColumnIdx);
-                    String tags = cursor.getString(tagsColumnIdx);
-                    double fileSize = cursor.getDouble(fileSizeColumnIdx);
-                    if (path == null) continue;
-                    photos.add(new Photo(path, name, modifiedDate, takenDate, tags, fileSize));
-                } while (cursor.moveToNext());
-            }
-        } catch (Exception e) {
-            Log.e("PhotoRepository", e.toString());
-        }
-        return photos;
+        return getLocalPhotos(albumBucketID);
     }
 
     public void updatePhoto(String photoPath, String newTags, long newModifiedDate,
@@ -232,7 +268,8 @@ public class PhotoRepository {
         String selection = MediaStore.Images.Media.DATA + "=?";
         String[] selectionArgs = new String[]{photoPath};
 
-        contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection,
+        context.getContentResolver().update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values,
+                selection,
                 selectionArgs);
     }
 
@@ -245,7 +282,7 @@ public class PhotoRepository {
     /**
      * @throws IllegalStateException when user is not logged in to Firebase
      */
-    public List<PhotoDetails> getAllRemotePhotos() throws
+    public List<PhotoDetails> getAllRemotePhotosDirectly() throws
             ExecutionException, InterruptedException {
         if (user == null) {
             Log.d(TAG, "User is null");
@@ -266,11 +303,31 @@ public class PhotoRepository {
         return new ArrayList<>();
     }
 
+
+    /**
+     * Get all photos from remote storage
+     * <p>
+     * Callback: {@link #addGetAllRemotePhotosCallback(GetAllRemotePhotosCallback)}
+     */
+    public void getAllRemotePhotos() {
+        try {
+            List<PhotoDetails> result = getAllRemotePhotosDirectly();
+
+            for (GetAllRemotePhotosCallback callback : getAllRemotePhotosCallbacks) {
+                callback.onCompleted(result);
+            }
+        } catch (ExecutionException | InterruptedException | IllegalStateException e) {
+            for (GetAllRemotePhotosCallback callback : getAllRemotePhotosCallbacks) {
+                callback.onFailed(e);
+            }
+        }
+    }
+
     /**
      * @throws IllegalStateException when user is not logged in to Firebase
      */
     @Nullable
-    public ImageDocumentReponse getImageDocument() throws
+    public ImageDocumentResponse getImageDocument() throws
             ExecutionException, InterruptedException {
         if (user == null) {
             Log.d(TAG, "User is null");
@@ -285,7 +342,7 @@ public class PhotoRepository {
         QuerySnapshot querySnapshot = Tasks.await(fetchTask);
         for (QueryDocumentSnapshot documentSnapshot : querySnapshot) {
             // only 1 document per collection atm
-            return new ImageDocumentReponse(
+            return new ImageDocumentResponse(
                     documentSnapshot.toObject(ImageDocument.class),
                     documentSnapshot.getReference()
             );
@@ -298,89 +355,173 @@ public class PhotoRepository {
     /**
      * Delete photos from the device
      *
-     * @param photos List of photos to delete
-     * @return List of photos that were successfully deleted
+     * @param photos   List of photos to delete
+     * @param launcher IntentSenderLauncher to handle the delete request on Android R
+     *                 and above
+     * @param callback Callback to handle the result of the delete operation
      */
-    public List<Photo> deletePhotos(List<Photo> photos) {
-        List<Photo> deletedPhotos = new ArrayList<>();
-        for (Photo photo : photos) {
-            Uri uri = Uri.fromFile(new File(photo.getPath()));
-            try {
-                context.getContentResolver().delete(
-                        uri, null, null
-                );
-                deletedPhotos.add(photo);
-            } catch (Exception e) {
-                Log.e(TAG, "Error deleting photo", e);
-            }
-        }
+    @SuppressLint("NewApi")
+    public void deleteLocalPhotos(List<Photo> photos, IntentSenderLauncher launcher,
+                                  DeletePhotosCallback callback) {
+        // createDeleteRequest is only available on Android R and above but we can use in on Q
+        // since we opt in to the new storage model by setting
+        // android:requestLegacyExternalStorage to false in the manifest
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            PendingIntent pendingIntent = MediaStore.createDeleteRequest(
+                    context.getContentResolver(),
+                    photos.stream().map(Photo::getContentUri).collect(Collectors.toList())
+            );
+            IntentSenderRequest request =
+                    new IntentSenderRequest.Builder(pendingIntent.getIntentSender())
+                            .setFillInIntent(null)
+                            .build();
 
-        return deletedPhotos;
-    }
+            launcher.launch(request, new IntentSenderLauncher.IntentSenderResultCallback() {
+                @Override
+                public void onOK() {
+                    if (callback != null) {
+                        callback.onSucceed();
+                    }
+                }
 
-    public void test() {
-        if (user == null) return;
-
-        ArrayList<Photo> photos = GetAllPhotos();
-
-
-        int count = 0;
-        for (Photo photo : photos) {
-            if (count == 2) break;
-
-            Uri file = Uri.fromFile(new File(photo.getPath()));
-            String fileName = file.getLastPathSegment();
-
-            StorageReference imageRef = storage.getReference()
-                    .child("user")
-                    .child(user.getUid())
-                    .child(System.currentTimeMillis() + "-" + fileName);
-
-            UploadTask uploadTask = imageRef.putFile(file);
-            uploadTask
-                    .addOnSuccessListener(taskSnapshot -> {
-                        Log.d(TAG, "Image uploaded: " + fileName);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Error uploading image: " + fileName, e);
-                    }).addOnPausedListener(taskSnapshot -> {
-                        Log.d(TAG, "Upload is paused: " + fileName);
-                    });
-
-            Task<Uri> getUrlTask = uploadTask.continueWithTask(task -> {
-                if (!task.isSuccessful())
-                    throw Objects.requireNonNull(task.getException());
-
-                return imageRef.getDownloadUrl();
-            }).addOnCompleteListener(task -> {
-                if (task.isSuccessful()) {
-                    Uri downloadUri = task.getResult();
-                    Map<String, String> data = new HashMap<>();
-                    data.put("local", photo.getPath());
-                    data.put("remote", downloadUri.toString());
-
-                    db.collection("users").document(user.getUid())
-                            .update("images", FieldValue.arrayUnion(data))
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Error storing image URL: " + fileName, e);
-                            });
-                } else {
-                    Log.e(TAG, "Error getting image URL: " + fileName, task.getException());
+                @Override
+                public void onCanceled() {
+                    if (callback != null) {
+                        callback.onFailed(photos);
+                    }
                 }
             });
+        } else {
+            List<Photo> deletedPhotos = new ArrayList<>();
+            for (Photo photo : photos) {
+                int result = context.getContentResolver().delete(
+                        photo.getContentUri(),
+                        null,
+                        null
+                );
 
-            count += 1;
+                if (result != 0) {
+                    deletedPhotos.add(photo);
+                }
+            }
+
+            if (callback != null) {
+                if (deletedPhotos.size() == photos.size()) {
+                    callback.onSucceed();
+                } else {
+                    callback.onFailed(deletedPhotos);
+                }
+            }
         }
     }
 
-    public class ImageDocumentReponse {
+    private void updateFileInMediaStore(String filePath) {
+        MediaScannerConnection.scanFile(
+                context,
+                new String[]{filePath},
+                null,
+                (path, uri) -> {
+                    Log.d(TAG + "::Storage", "Scanned " + path + ":");
+                    Log.d(TAG + "::Storage", "-> uri=" + uri);
+                });
+    }
+
+
+    public interface GetAllLocalPhotosCallback {
+        void onCompleted(List<Photo> photos);
+    }
+
+    public interface GetAllRemotePhotosCallback {
+        void onCompleted(List<PhotoDetails> photos);
+
+        void onFailed(Exception e);
+    }
+
+    public interface MediaChangedCallback {
+        void onAdded(Photo photo);
+
+        void onDeleted(Uri uri);
+    }
+
+    public interface DeletePhotosCallback {
+        void onSucceed();
+
+        void onFailed(List<Photo> deletedPhotos);
+    }
+
+    public static class ImageDocumentResponse {
         public ImageDocument imageDocument;
         public DocumentReference documentRef;
 
-        public ImageDocumentReponse(ImageDocument imageDocument,
-                                    DocumentReference documentReference) {
+        public ImageDocumentResponse(ImageDocument imageDocument,
+                                     DocumentReference documentReference) {
             this.imageDocument = imageDocument;
             this.documentRef = documentReference;
+        }
+    }
+
+    private class MediaStoreChangedBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String uriStr = intent.getStringExtra("uri");
+            if (uriStr != null) {
+                Uri uri = Uri.parse(uriStr);
+
+                String[] projection = new String[]{
+                        MediaStore.Images.Media.DATA,
+                        MediaStore.Images.Media.DISPLAY_NAME,
+                        MediaStore.Images.Media.DATE_MODIFIED,
+                        MediaStore.Images.Media.DATE_TAKEN,
+                        MediaStore.Images.Media.SIZE,
+                        MediaStore.Images.Media.DESCRIPTION
+                };
+
+                try (Cursor cursor = context.getContentResolver().query(
+                        uri,
+                        projection,
+                        null,
+                        null,
+                        null)
+                ) {
+                    if (cursor != null && cursor.moveToFirst()) {
+                        Log.d(TAG, "MediaStore added: " + uri);
+
+                        int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media
+                                .DATA);
+                        int NameColumnIdx =
+                                cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
+                        int ModifiedDateColumnIdx =
+                                cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+                        int TakenDateColumnIdx =
+                                cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
+                        int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images
+                                .Media.SIZE);
+                        int tagsColumnIdx =
+                                cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
+
+                        String path = cursor.getString(PathColumnIdx);
+                        String name = cursor.getString(NameColumnIdx);
+                        long modifiedDate = cursor.getLong(ModifiedDateColumnIdx) * 1000;
+                        long takenDate = cursor.getLong(TakenDateColumnIdx);
+                        String tags = cursor.getString(tagsColumnIdx);
+                        double fileSize = cursor.getDouble(fileSizeColumnIdx);
+
+                        for (MediaChangedCallback callback : mediaChangedCallbacks) {
+                            callback.onAdded(new Photo(
+                                    path, name, modifiedDate, takenDate, tags, fileSize, uri
+                            ));
+                        }
+                    } else {
+                        Log.d(TAG, "MediaStore deleted: " + uri);
+
+                        for (MediaChangedCallback callback : mediaChangedCallbacks) {
+                            callback.onDeleted(uri);
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to query MediaStore", e);
+                }
+            }
         }
     }
 }

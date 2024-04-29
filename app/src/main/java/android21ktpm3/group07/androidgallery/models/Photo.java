@@ -1,5 +1,6 @@
 package android21ktpm3.group07.androidgallery.models;
 
+import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -17,6 +18,7 @@ public class Photo extends BaseObservable implements Parcelable {
     private final String name;
     private final long modifiedDate;
     private final long takenDate;
+    private final Uri contentUri;
 
     private String tags;
 
@@ -31,13 +33,14 @@ public class Photo extends BaseObservable implements Parcelable {
     private String remoteUrl = null;
 
     public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
-                 double fizeSize) {
+                 double fizeSize, Uri contentUri) {
         this.path = path;
         this.name = name;
         this.modifiedDate = modifiedDate;
         this.takenDate = takenDate;
         this.tags = tags;
         this.fileSize = fizeSize;
+        this.contentUri = contentUri;
     }
 
     protected Photo(Parcel in) {
@@ -47,6 +50,7 @@ public class Photo extends BaseObservable implements Parcelable {
         this.fileSize = in.readDouble();
         this.tags = in.readString();
         this.takenDate = in.readLong();
+        this.contentUri = in.readParcelable(Uri.class.getClassLoader());
     }
 
     public String getPath() {
@@ -118,6 +122,10 @@ public class Photo extends BaseObservable implements Parcelable {
     public void setRemoteUrl(String remoteUrl) {
         this.remoteUrl = remoteUrl;
         notifyPropertyChanged(BR.remoteUrl);
+    }
+
+    public Uri getContentUri() {
+        return contentUri;
     }
 
     @Override

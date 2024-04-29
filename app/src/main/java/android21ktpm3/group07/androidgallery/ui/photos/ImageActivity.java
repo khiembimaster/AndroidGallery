@@ -1,7 +1,6 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.Bitmap;
@@ -29,7 +28,7 @@ public class ImageActivity extends AppCompatActivity {
     FrameLayout DetailFrame;
     FrameLayout ImageFrame;
 
-  //  private final Context context;
+    //  private final Context context;
 
 
     ImageView display;
@@ -41,15 +40,10 @@ public class ImageActivity extends AppCompatActivity {
     ImageButton detail;
 
     ImageButton delete;
-    String photoPath ;
-    String photoTags ;
-    long photoDate ;
+    String photoPath;
+    String photoTags;
+    long photoDate;
     double photoSize;
-
-    ContentResolver contentResolver;
-
-
-
 
     @Override
     protected void onStop() {
@@ -57,28 +51,27 @@ public class ImageActivity extends AppCompatActivity {
         super.onStop();
         System.out.println("stop");
     }
+
     @Override
     protected void onDestroy() {
 
         super.onDestroy();
         System.out.println("destroy");
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.single_image);
         display = findViewById(R.id.image_item);
 
-        contentResolver = getContentResolver();
-
         photoPath = getIntent().getStringExtra("photo_path");
-        photoTags = getIntent().getStringExtra("photo_tags") == null ? " " : getIntent().getStringExtra("photo_tags");
-        photoDate = getIntent().getLongExtra("photo_date", 0); // 0 là giá trị mặc định nếu không tìm thấy
-        photoSize = getIntent().getDoubleExtra("photo_size", 0.0); // 0.0 là giá trị mặc định nếu không tìm thấy
-
-
-
-
+        photoTags = getIntent().getStringExtra("photo_tags") == null ? " " :
+                getIntent().getStringExtra("photo_tags");
+        photoDate = getIntent().getLongExtra("photo_date", 0); // 0 là giá trị mặc định nếu không
+        // tìm thấy
+        photoSize = getIntent().getDoubleExtra("photo_size", 0.0); // 0.0 là giá trị mặc định nếu
+        // không tìm thấy
 
 
         if (photoPath != null) {
@@ -86,9 +79,6 @@ public class ImageActivity extends AppCompatActivity {
                     .load(photoPath)
                     .into(display);
         }
-
-
-
 
 
         share = (ImageButton) findViewById(R.id.btnShare);
@@ -131,17 +121,17 @@ public class ImageActivity extends AppCompatActivity {
 
 
     }
+
     private void showDetailDialog() {
-        if (photoPath != null){
-            PhotoRepository repository = new PhotoRepository(contentResolver);
+        if (photoPath != null) {
+            PhotoRepository repository = new PhotoRepository(this);
 
-            detailActivity dialog = new detailActivity(this,repository);
-
+            detailActivity dialog = new detailActivity(this, repository);
 
 
             // Đặt dữ liệu cho Dialog
 
-            dialog.setData(photoPath,photoDate,photoSize,photoTags);
+            dialog.setData(photoPath, photoDate, photoSize, photoTags);
 
             // Hiển thị Dialog
             dialog.show();
@@ -150,12 +140,12 @@ public class ImageActivity extends AppCompatActivity {
     }
 
 
-    public String saveToInternalStorage(Bitmap bitmapImage){
+    public String saveToInternalStorage(Bitmap bitmapImage) {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         // path to /data/data/yourapp/app_data/imageDir
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         // Create imageDir
-        File mypath=new File(directory,"profile.jpg");
+        File mypath = new File(directory, "profile.jpg");
 
         FileOutputStream fos = null;
         try {

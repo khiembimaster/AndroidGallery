@@ -3,11 +3,13 @@ package android21ktpm3.group07.androidgallery.Workers;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.hilt.work.HiltWorker;
 import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -34,7 +36,6 @@ import com.google.mlkit.vision.label.ImageLabeling;
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions;
 
 import java.io.File;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -47,7 +48,10 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import dagger.assisted.Assisted;
+import dagger.assisted.AssistedInject;
 
+@HiltWorker
 public class PhotoSyncWorker extends Worker {
     private static final String TAG = PhotoSyncWorker.class.getSimpleName();
     private static final String TOTAL_COUNT_KEY = "total_count";
@@ -59,10 +63,18 @@ public class PhotoSyncWorker extends Worker {
     private final StorageReference storageRef;
     private final PhotoRepository photoRepository;
 
+    private int numImagesToUpload;
     private int numImagesUploaded;
 
-    public PhotoSyncWorker(@NonNull Context appContext, @NonNull WorkerParameters workerParams) {
+    @AssistedInject
+    public PhotoSyncWorker(
+            @Assisted @NonNull Context appContext,
+            @Assisted @NonNull WorkerParameters workerParams,
+            PhotoRepository photoRepository
+    ) {
         super(appContext, workerParams);
+
+        this.photoRepository = photoRepository;
 
         ImageLabelerOptions options =
                 new ImageLabelerOptions.Builder()
@@ -82,26 +94,23 @@ public class PhotoSyncWorker extends Worker {
         storageRef = FirebaseStorage.getInstance().getReference()
                 .child("user")
                 .child(user.getUid());
-
-        photoRepository = new PhotoRepository(appContext);
-        photoRepository.setFirebaseUser(user);
     }
 
     @NonNull
     @Override
     public Result doWork() {
         try {
-            List<Photo> localPhotos = photoRepository.GetAllPhotos();
+            List<Photo> localPhotos = photoRepository.getAllLocalPhotosDirectly();
 
-            boolean test = true;
+            boolean test = false;
 
             CollectionReference imagesCollRef = userDocRef.collection("images");
-            ImageDocument imageDocument;
             DocumentReference imageDocumentRef;
+            ImageDocument imageDocument;
             ArrayList<Photo> photosToUpload = new ArrayList<>();
             ArrayList<PhotoDetails> photosToDownload = new ArrayList<>();
 
-            PhotoRepository.ImageDocumentReponse response = photoRepository.getImageDocument();
+            PhotoRepository.ImageDocumentResponse response = photoRepository.getImageDocument();
 
             if (test && response != null) {
                 Tasks.await(response.documentRef.delete());
@@ -124,8 +133,9 @@ public class PhotoSyncWorker extends Worker {
 
                 for (Photo localPhoto : localPhotos) {
                     PhotoDetailsInLocal remotePhoto = remotePhotosMap.get(localPhoto.getPath());
-                    if (remotePhoto != null) {
+                    if (remotePhoto == null) {
                         photosToUpload.add(localPhoto);
+                    } else {
                         remotePhoto.isLocallyAvailable = true;
                     }
                 }
@@ -141,28 +151,44 @@ public class PhotoSyncWorker extends Worker {
                 photosToUpload.addAll(localPhotos);
             }
 
-            if (photosToUpload.isEmpty()) {
-                Log.d(TAG, "No photos to upload");
-                return Result.success();
+            Log.d(TAG, "Photos to upload: " + photosToUpload.size());
+            Log.d(TAG, "Photos to download: " + photosToDownload.size());
+
+
+            // Downloading
+            List<CompletableFuture<Void>> downloadingFutures = new ArrayList<>();
+            for (PhotoDetails photo : photosToDownload) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                downloadImage(photo, future);
+                downloadingFutures.add(future);
             }
 
-            numImagesUploaded = photosToUpload.size();
+            // Uploading
+            numImagesToUpload = photosToUpload.size();
             setProgressAsync(new Data.Builder()
-                    .putLong(TOTAL_COUNT_KEY, numImagesUploaded)
+                    .putLong(TOTAL_COUNT_KEY, numImagesToUpload)
                     .build());
+
+            long curTime = System.currentTimeMillis();
 
             ArrayList<Task<Uri>> uploadingTasks = new ArrayList<>();
             for (Photo photo : photosToUpload) {
-                Task<Uri> task = uploadImage(Uri.fromFile(new File(photo.getPath())));
+                String remoteName = curTime + "-" + photo.getName();
+
+                Task<Uri> task = uploadImage(
+                        Uri.fromFile(new File(photo.getPath())),
+                        remoteName
+                );
                 task.addOnSuccessListener(uri -> {
                     imageDocument.photos.add(new PhotoDetails(
                             photo.getPath(),
                             uri.toString(),
-                            photo.getName()
+                            new Date(photo.getModifiedDate())
                     ));
                     PhotoSyncWorker.this.setProgressAsync(new Data.Builder()
-                            .putLong(TOTAL_COUNT_KEY, --numImagesUploaded)
+                            .putLong(TOTAL_COUNT_KEY, --numImagesToUpload)
                             .build());
+                    ++numImagesUploaded;
                 });
 
                 uploadingTasks.add(task);
@@ -172,25 +198,25 @@ public class PhotoSyncWorker extends Worker {
             Task<Void> finishedUploadingTask = Tasks.whenAll(uploadingTasks)
                     .addOnSuccessListener(aVoid -> {
                         // Switch all the time to using server time
-                        imageDocument.updatedAt = Date.from(Instant.now());
                         if (imageDocumentRef != null) {
                             imageDocumentRef.set(imageDocument).addOnSuccessListener(documentReference -> {
                                 Log.d(TAG, "Finished uploading images: "
-                                        + imageDocument.photos.size() + "/" + photosToUpload.size());
+                                        + numImagesUploaded + "/" + photosToUpload.size());
                             });
                         } else {
                             imagesCollRef.add(imageDocument).addOnSuccessListener(documentReference -> {
                                 Log.d(TAG, "Finished uploading images: "
-                                        + imageDocument.photos.size() + "/" + photosToUpload.size());
+                                        + numImagesUploaded + "/" + photosToUpload.size());
                             });
                         }
                     });
 
+
+            // Labelling
             List<CompletableFuture<Void>> labellingFutures = new ArrayList<>();
             Task<Void> labellingTask = finishedUploadingTask.continueWith(task -> {
                 if (!task.isSuccessful()) return null;
 
-                Log.d(TAG, Thread.currentThread().getName());
                 for (Photo photo : photosToUpload) {
                     CompletableFuture<Void> future = new CompletableFuture<>();
                     labelImage(Uri.fromFile(new File(photo.getPath())), future);
@@ -201,11 +227,15 @@ public class PhotoSyncWorker extends Worker {
             });
 
             // We have to do this outside because the firebase task listener is
-            // called in the main thread (where it is initialized)
+            // executed in the main thread (where it is initialized)
             Tasks.await(labellingTask);
             CompletableFuture.allOf(labellingFutures.toArray(new CompletableFuture[0]))
                     .join();
             Log.d(TAG, "Finished labelling photos");
+
+            CompletableFuture.allOf(downloadingFutures.toArray(new CompletableFuture[0]))
+                    .join();
+            Log.d(TAG, "Finished downloading photos");
         } catch (ExecutionException | InterruptedException e) {
             Log.d(TAG, "Error when syncing photos", e);
             return Result.failure();
@@ -214,15 +244,13 @@ public class PhotoSyncWorker extends Worker {
         return Result.success();
     }
 
-    private Task<Uri> uploadImage(Uri file) {
+    private Task<Uri> uploadImage(Uri file, String name) {
         StorageReference imageRef = storageRef
-                .child(System.currentTimeMillis() + "-" + file.getLastPathSegment());
+                .child(name);
 
         UploadTask uploadTask = imageRef.putFile(file);
         uploadTask.addOnFailureListener(e -> {
             Log.e(TAG, "Error when upload your images", e);
-        }).addOnSuccessListener(taskSnapshot -> {
-            Log.d(TAG, "Your images stored successfully!");
         }).addOnPausedListener(taskSnapshot -> {
             Log.d(TAG, "Upload is paused");
         });
@@ -267,14 +295,69 @@ public class PhotoSyncWorker extends Worker {
                     public void onLoadCleared(@Nullable Drawable placeholder) {
                     }
                 });
-
-
     }
 
-    private interface Callback {
-        void onFailure(Exception e);
+    private void downloadImage(PhotoDetails photo, CompletableFuture<Void> future) {
+        File localFile = getFileOnLocal(photo.localPath);
+        if (localFile == null) {
+            Log.e(TAG, "Cannot create local file for " + photo.localPath);
+            return;
+        }
 
-        void onSuccess();
+        StorageReference imageRef =
+                FirebaseStorage.getInstance().getReferenceFromUrl(photo.remoteUrl);
+
+        imageRef.getFile(localFile).addOnSuccessListener(taskSnapshot -> {
+            Log.d(TAG, "Downloaded " + photo.localPath);
+            MediaScannerConnection.scanFile(
+                    getApplicationContext(),
+                    new String[]{localFile.getPath()},
+                    null,
+                    (path, uri) -> {
+                        Log.i(TAG, "Scanned " + path + ":");
+                        Log.i(TAG, "-> uri=" + uri);
+                    });
+            future.complete(null);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error when downloading " + photo.localPath, e);
+            future.completeExceptionally(e);
+        });
+    }
+
+    private File getFileOnLocal(String localPath) {
+        File file = new File(localPath);
+
+        File folder = file.getParentFile();
+        if (folder == null) {
+            return null;
+        }
+
+        if (!folder.exists()) {
+            if (!folder.mkdirs()) return null;
+        }
+
+        return file;
+    }
+
+    private File createUniqueFolder(String path) {
+        File folder = new File(path);
+        String name = folder.getName();
+        String parent = folder.getParent();
+
+        // Loop to find a unique folder name
+        int counter = 1;
+        while (folder.exists()) {
+            String newName = name + " (" + counter + ")";
+            folder = new File(parent, newName);
+            ++counter;
+        }
+
+        // Try creating the folder
+        if (folder.mkdirs()) {
+            return folder;
+        } else {
+            return null;
+        }
     }
 
     private static class PhotoDetailsInLocal {

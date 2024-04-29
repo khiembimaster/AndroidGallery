@@ -14,22 +14,26 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android21ktpm3.group07.androidgallery.models.Photo;
-import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
-import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import javax.inject.Inject;
 
+import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import dagger.hilt.android.AndroidEntryPoint;
+
+@Deprecated
+@AndroidEntryPoint
 public class PhotoService extends Service {
+    @Inject
+    PhotoRepository photoRepository;
+
     private final String TAG = this.getClass().getSimpleName();
     private final IBinder binder = new LocalBinder();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final PhotoRepository photoRepository = new PhotoRepository(this);
 
     private LocalPhotosLoadedCallback localPhotosLoadedCallback;
     private RemotePhotosLoadedCallback remotePhotosLoadedCallback;
@@ -78,16 +82,6 @@ public class PhotoService extends Service {
     }
 
 
-    public void getLocalPhotos() {
-        executor.execute(() -> {
-            ArrayList<Photo> photos = photoRepository.GetAllPhotos();
-            Log.d("PhotoService", "Getting local photos: " + photos.size());
-
-            if (localPhotosLoadedCallback != null)
-                localPhotosLoadedCallback.onCompleted(photos);
-        });
-    }
-
     public void getLocalPhotosInAlbum(long albumId) {
         executor.execute(() -> {
             ArrayList<Photo> photos = photoRepository.getPhotosInAlbum(albumId);
@@ -98,64 +92,9 @@ public class PhotoService extends Service {
         });
     }
 
-    public void updateSyncingStatus(List<Photo> localPhotos) {
-        executor.execute(() -> {
-            List<PhotoDetails> remotePhotos;
-            try {
-                remotePhotos = photoRepository.getAllRemotePhotos();
-            } catch (ExecutionException | InterruptedException e) {
-                remotePhotosLoadedCallback.onCompleted();
-                return;
-            }
-            Log.d("PhotoService", "Getting remote photos: " + remotePhotos.size());
-
-            HashMap<String, PhotoDetails> remotePhotosMap = new HashMap<>(
-                    (int) Math.ceil(remotePhotos.size() / 0.75)
-            );
-            for (PhotoDetails remotePhoto : remotePhotos) {
-                remotePhotosMap.put(remotePhoto.localPath, remotePhoto);
-            }
-
-            for (Photo localPhoto : localPhotos) {
-                PhotoDetails remotePhoto = remotePhotosMap.get(localPhoto.getPath());
-
-                if (remotePhoto != null) {
-                    localPhoto.setRemoteUrl(remotePhoto.remoteUrl);
-                } else {
-                    localPhoto.setRemoteUrl(null);
-                }
-
-            }
-
-            if (remotePhotosLoadedCallback != null)
-                remotePhotosLoadedCallback.onCompleted();
-        });
-    }
-
-    public void deletePhotos(List<Photo> photos) {
-        executor.execute(() -> {
-            List<Photo> deletedPhotos = photoRepository.deletePhotos(photos);
-
-            if (photosDeletedCallback != null) {
-                if (deletedPhotos.size() == photos.size())
-                    photosDeletedCallback.onCompleted(photos);
-                else
-                    photosDeletedCallback.onFailed(photos);
-            }
-        });
-    }
-
 
     public void setFirebaseUser(FirebaseUser user) {
         photoRepository.setFirebaseUser(user);
-    }
-
-    public void test() {
-        executor.execute(photoRepository::test);
-    }
-
-    private void syncPhotos() {
-
     }
 
     public interface LocalPhotosLoadedCallback {
@@ -171,10 +110,11 @@ public class PhotoService extends Service {
     }
 
     public interface PhotosDeletedCallback {
-        void onCompleted(List<Photo> deletedPhotos);
+        void onSuccess(List<Photo> deletedPhotos);
 
-        void onFailed(List<Photo> deletedPhotos);
+        void onFailure(List<Photo> deletedPhotos);
     }
+
 
     public class MyReceiver extends BroadcastReceiver {
         @Override

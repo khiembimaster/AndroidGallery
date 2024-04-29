@@ -22,7 +22,6 @@ import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.SavedStateViewModelFactory;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -48,14 +47,21 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android21ktpm3.group07.androidgallery.Workers._PhotoSyncWorker;
-import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
-import android21ktpm3.group07.androidgallery.services.PhotoService;
-import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
+import javax.inject.Inject;
 
+import android21ktpm3.group07.androidgallery.Workers.PhotoSyncWorker;
+import android21ktpm3.group07.androidgallery.databinding.ActivityMainBinding;
+import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import android21ktpm3.group07.androidgallery.services.PhotoService;
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements
         IMenuItemHandler,
         BottomSheetFragment.OnBottomSheetItemClickListener {
+    @Inject
+    PhotoRepository photoRepository;
+
     private OnMenuItemClickListener onAccountItemClickListener;
     private OnMenuItemClickListener onCreateNewItemClickListener;
     private OnMenuItemClickListener onShareItemClickListener;
@@ -82,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements
     FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     //--------------------------------------------
-    private _PhotoSyncWorker photoSyncWorker;
+    private PhotoSyncWorker photoSyncWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -173,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements
 
             // FIXME change this shenanigan
             doWhenServiceBoundAndUserSignedIn();
+            doWhenUserSignedIn();
         } else {
             Log.d(TAG, "User is signed out");
             showOneTapUI = true;
@@ -210,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements
         return binding.materialToolbar.getMenu();
     }
 
+    //  TODO: Move to application class ?
     private void requestPermission() {
         ActivityResultLauncher<String[]> requestPermissionLauncher =
                 registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
@@ -225,7 +233,8 @@ public class MainActivity extends AppCompatActivity implements
                             }
 
                             permissionsGranted = true;
-                            doWhenServiceBoundAndPermissionsGranted();
+                            doWhenPermissionsGranted();
+                            // doWhenServiceBoundAndPermissionsGranted();
                             Log.d(TAG, "Authentication finished");
                         }
                 );
@@ -345,8 +354,10 @@ public class MainActivity extends AppCompatActivity implements
         updateUI(null);
         showOneTapUI = true;
 
-        photoService.setFirebaseUser(null);
-        updateSyncingStatus();
+        executor.execute(() -> {
+            photoRepository.setFirebaseUser(null);
+            photoRepository.getAllRemotePhotos();
+        });
     }
 
     private void toggleBottomSheet() {
@@ -357,31 +368,60 @@ public class MainActivity extends AppCompatActivity implements
     private void doWhenServiceBoundAndPermissionsGranted() {
         if (!serviceBound || !permissionsGranted) return;
 
-        photoService.getLocalPhotos();
+        // photoService.getLocalPhotos();
     }
 
     private void doWhenServiceBoundAndUserSignedIn() {
-        if (!serviceBound) return;
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
-
-
-        photoService.setFirebaseUser(user);
-        updateSyncingStatus();
+        // if (!serviceBound) return;
+        // FirebaseUser user = auth.getCurrentUser();
+        // if (user == null) return;
+        //
+        //
+        // photoService.setFirebaseUser(user);
+        // photoRepository.getAllRemotePhotos();
         // photoService.test();
         // photoService.getRemotePhotos();
     }
 
-    // TODO update this shenanigan in the next commit
-    private void updateSyncingStatus() {
-        Fragment fragment =
-                getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment_activity_main);
-        PhotosFragment pf =
-                (PhotosFragment) fragment.getChildFragmentManager().getFragments().get(0);
+    private void doWhenPermissionsGranted() {
+        executor.execute(() -> {
+            photoRepository.getAllLocalPhotos();
+        });
 
-
-        photoService.updateSyncingStatus(pf.photosViewModel.getPhotosData());
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            executor.execute(() -> {
+                photoRepository.setFirebaseUser(user);
+                photoRepository.getAllRemotePhotos();
+            });
+        }
     }
+
+    private void doWhenUserSignedIn() {
+        Log.d(TAG, "doWhenUserSignedIn");
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
+        photoRepository.setFirebaseUser(user);
+
+        if (!permissionsGranted) return;
+
+        executor.execute(() -> {
+            photoRepository.getAllRemotePhotos();
+        });
+    }
+
+    // TODO update this shenanigan in the next commit
+    // private void updateSyncingStatus() {
+    //     Fragment fragment =
+    //             getSupportFragmentManager().findFragmentById(R.id
+    //             .nav_host_fragment_activity_main);
+    //     PhotosFragment pf =
+    //             (PhotosFragment) fragment.getChildFragmentManager().getFragments().get(0);
+    //
+    //
+    //     photoService.updateSyncingStatus(pf.photosViewModel.getPhotosData());
+    // }
 
     @Override
     public void onBottomSheetItemClick(String item) {

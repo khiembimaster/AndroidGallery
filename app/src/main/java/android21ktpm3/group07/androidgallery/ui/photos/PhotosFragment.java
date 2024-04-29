@@ -1,7 +1,5 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import static androidx.core.content.FileProvider.getUriForFile;
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -14,6 +12,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -26,23 +25,35 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+import javax.inject.Inject;
 
 import android21ktpm3.group07.androidgallery.IMenuItemHandler;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
+import android21ktpm3.group07.androidgallery.helpers.IntentSenderLauncher;
 import android21ktpm3.group07.androidgallery.models.Photo;
+import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
+import dagger.hilt.android.AndroidEntryPoint;
 
+@AndroidEntryPoint
 public class PhotosFragment extends Fragment {
+    @Inject
+    PhotoRepository photoRepository;
+    @Inject
+    ExecutorService executor;
+
     public PhotosViewModel photosViewModel;
     protected IMenuItemHandler menuItemHandler;
     protected PhotoService photoService;
 
     private final String TAG = "PhotosFragment";
     protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
+    private IntentSenderLauncher intentSenderLauncher;
     private FragmentPhotosBinding binding;
     protected Context context;
     private PhotosRecyclerAdapter adapter;
@@ -54,13 +65,15 @@ public class PhotosFragment extends Fragment {
         super.onAttach(context);
         if (!(context instanceof IMenuItemHandler)) return;
 
+        intentSenderLauncher = new IntentSenderLauncher(this);
+
         menuItemHandler = (IMenuItemHandler) context;
         menuItemHandler.setOnShareItemClickListener(this::sharePhotos);
         menuItemHandler.setOnDeleteItemClickListener(this::deletePhotos);
 
         menuItemHandler.setOnCreateNewItemClickListener(() -> {
             photosViewModel.test();
-            photoService.updateSyncingStatus(photosViewModel.getPhotosData());
+            // photoService.updateSyncingStatus(photosViewModel.getPhotosData());
         });
     }
 
@@ -80,14 +93,14 @@ public class PhotosFragment extends Fragment {
 
                 photoService.registerPhotosDeletedCallback(new PhotoService.PhotosDeletedCallback() {
                     @Override
-                    public void onCompleted(List<Photo> deletedPhotos) {
+                    public void onSuccess(List<Photo> deletedPhotos) {
                         threadHandler.post(() -> {
                             photosViewModel.RemovePhotos(deletedPhotos);
                         });
                     }
 
                     @Override
-                    public void onFailed(List<Photo> deletedPhotos) {
+                    public void onFailure(List<Photo> deletedPhotos) {
                         threadHandler.post(() -> {
                             photosViewModel.RemovePhotos(deletedPhotos);
                             Snackbar.make(
@@ -129,6 +142,8 @@ public class PhotosFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(context);
         binding.recyclerView.setLayoutManager(layoutManager);
         binding.recyclerView.setAdapter(adapter);
+
+        initializeRecyclerView();
     }
 
     @Override
@@ -179,36 +194,42 @@ public class PhotosFragment extends Fragment {
 
     public void displayFragmentOptionItems() {
         Menu menu = menuItemHandler.getMenu();
-        menu.findItem(R.id.share)
-                .setVisible(true)
-                .setEnabled(true);
-        menu.findItem(R.id.delete)
-                .setVisible(true)
-                .setEnabled(true);
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.share || itemId == R.id.delete) {
+                item.setVisible(true);
+                item.setEnabled(true);
+            } else {
+                item.setVisible(false);
+                item.setEnabled(false);
+            }
+        }
     }
 
     public void hideFragmentOptionItems() {
         Menu menu = menuItemHandler.getMenu();
-        menu.findItem(R.id.share)
-                .setVisible(false)
-                .setEnabled(false);
-        menu.findItem(R.id.delete)
-                .setVisible(false)
-                .setEnabled(false);
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.share || itemId == R.id.delete) {
+                item.setVisible(false);
+                item.setEnabled(false);
+            } else {
+                item.setVisible(true);
+                item.setEnabled(true);
+            }
+        }
     }
 
     public void sharePhotos() {
         ArrayList<Uri> imageUris = new ArrayList<>();
 
         for (Photo photo : adapter.getSelectedPhotos()) {
-            File file = new File(photo.getPath());
-
-            // FIXME Find another solution since this doesn't work if the image is in sdcard
-            Uri imageUri = getUriForFile(
-                    context,
-                    "android21ktpm3.group07.androidgallery.fileprovider",
-                    file);
-            imageUris.add(imageUri);
+            Log.d(TAG, "Sharing " + photo.getPath() + " with uri " + photo.getContentUri());
+            imageUris.add(photo.getContentUri());
         }
 
         Intent shareIntent = new Intent(Intent.ACTION_SEND_MULTIPLE);
@@ -219,7 +240,13 @@ public class PhotosFragment extends Fragment {
     }
 
     public void deletePhotos() {
-        photoService.deletePhotos(adapter.getSelectedPhotos());
+        executor.execute(() -> {
+            photoRepository.deleteLocalPhotos(
+                    adapter.getSelectedPhotos(),
+                    intentSenderLauncher,
+                    null
+            );
+        });
     }
 
     public void viewPhoto(Photo photo) {
@@ -241,6 +268,6 @@ public class PhotosFragment extends Fragment {
     }
 
     private void test() {
-        
+
     }
 }
