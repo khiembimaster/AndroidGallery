@@ -13,6 +13,8 @@ public interface IMenuItemHandler {
 
     void setOnDeleteItemClickListener(OnMenuItemClickListener listener);
 
+    void setOnEditItemClickListener(OnMenuItemClickListener listener);
+
     Menu getMenu();
 
     interface OnMenuItemClickListener {

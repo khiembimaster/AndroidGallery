@@ -57,7 +57,7 @@ public class PhotosFragment extends Fragment {
         menuItemHandler = (IMenuItemHandler) context;
         menuItemHandler.setOnShareItemClickListener(this::sharePhotos);
         menuItemHandler.setOnDeleteItemClickListener(this::deletePhotos);
-
+        menuItemHandler.setOnEditItemClickListener(this::editPhoto);
         menuItemHandler.setOnCreateNewItemClickListener(() -> {
             photosViewModel.test();
             photoService.updateSyncingStatus(photosViewModel.getPhotosData());
@@ -185,6 +185,8 @@ public class PhotosFragment extends Fragment {
         menu.findItem(R.id.delete)
                 .setVisible(true)
                 .setEnabled(true);
+        menu.findItem(R.id.edit)
+                .setVisible(true);
     }
 
     public void hideFragmentOptionItems() {
@@ -193,6 +195,9 @@ public class PhotosFragment extends Fragment {
                 .setVisible(false)
                 .setEnabled(false);
         menu.findItem(R.id.delete)
+                .setVisible(false)
+                .setEnabled(false);
+        menu.findItem(R.id.edit)
                 .setVisible(false)
                 .setEnabled(false);
     }
@@ -220,6 +225,20 @@ public class PhotosFragment extends Fragment {
 
     public void deletePhotos() {
         photoService.deletePhotos(adapter.getSelectedPhotos());
+    }
+
+    public void editPhoto() {
+        if(adapter.getSelectedPhotos().size() > 1){
+            Snackbar.make(
+                    binding.getRoot(),
+                    "Cannot edit multiple photos",
+                    Snackbar.LENGTH_SHORT
+            ).show();
+            return;
+        }
+        // start editor activity
+
+        Log.e(TAG, "Edit photo");
     }
 
     public void viewPhoto(Photo photo) {

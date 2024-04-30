@@ -56,6 +56,7 @@ import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
 public class MainActivity extends AppCompatActivity implements
         IMenuItemHandler,
         BottomSheetFragment.OnBottomSheetItemClickListener {
+    private OnMenuItemClickListener onEditItemClickListener;
     private OnMenuItemClickListener onAccountItemClickListener;
     private OnMenuItemClickListener onCreateNewItemClickListener;
     private OnMenuItemClickListener onShareItemClickListener;
@@ -110,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements
             } else if (item.getItemId() == R.id.delete) {
                 onDeleteItemClickListener.onClicked();
                 return true;
+            } else if (item.getItemId() == R.id.edit) {
+                onEditItemClickListener.onClicked();
             }
 
             return false;
@@ -203,6 +206,11 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void setOnDeleteItemClickListener(OnMenuItemClickListener onDeleteItemClickListener) {
         this.onDeleteItemClickListener = onDeleteItemClickListener;
+    }
+
+    @Override
+    public void setOnEditItemClickListener(OnMenuItemClickListener onEditItemClickListener) {
+        this.onEditItemClickListener = onEditItemClickListener;
     }
 
     @Override
