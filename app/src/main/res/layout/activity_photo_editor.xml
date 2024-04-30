@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -7,13 +7,55 @@
     android:layout_height="match_parent"
     tools:context=".ui.editor.PhotoEditor">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="0dp"
+    <ja.burhanrashid52.photoeditor.PhotoEditorView
+        android:id="@+id/photoEditorView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <RelativeLayout
+        android:fitsSystemWindows="true"
+        android:background="#99000000"
+        android:id="@+id/addTextSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:layout_centerInParent="true">
+        <Button
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:id="@+id/saveChangesButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save changes button"
+            android:layout_margin="16dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            />
+        <Button
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:id="@+id/openColorDialogButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Open color picker"
+            android:layout_marginEnd="16dp"
+            android:layout_below="@id/saveChangesButton"
+            android:layout_alignParentEnd="true"
+            />
+        <EditText
+            android:id="@+id/addTextEditText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:hint="Enter text here"
+            />
+    </RelativeLayout>
+
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:layout_alignParentBottom="true"
+        android:id="@+id/bottom_edit_action"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        app:menu="@menu/bottom_edit_action_menu" />
+
+</RelativeLayout>

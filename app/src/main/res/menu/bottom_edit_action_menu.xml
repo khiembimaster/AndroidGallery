@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_brush"
+        android:enabled="true"
+        android:icon="@drawable/draw_fill0_wght700_grad200_opsz48"
+        android:title="Brush"/>
+    <item
+        android:id="@+id/action_text"
+        android:enabled="true"
+        android:icon="@drawable/text_fields_fill0_wght700_grad200_opsz48"
+        android:title="Text"/>
+    <item
+        android:id="@+id/action_erase"
+        android:enabled="true"
+        android:icon="@drawable/ink_eraser_fill0_wght700_grad200_opsz48"
+        android:title="Erase"/>
+</menu>

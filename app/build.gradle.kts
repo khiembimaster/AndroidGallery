@@ -77,4 +77,9 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // Photo Editor SDK
+    implementation("com.burhanrashid52:photoeditor:3.0.2")
+    // Color Picker
+    implementation("com.github.mrudultora:Colorpicker:1.2.0")
 }
