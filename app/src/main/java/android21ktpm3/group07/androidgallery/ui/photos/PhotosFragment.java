@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
@@ -35,6 +36,7 @@ import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
+import android21ktpm3.group07.androidgallery.ui.editor.PhotoEditor;
 
 public class PhotosFragment extends Fragment {
     public PhotosViewModel photosViewModel;
@@ -186,7 +188,8 @@ public class PhotosFragment extends Fragment {
                 .setVisible(true)
                 .setEnabled(true);
         menu.findItem(R.id.edit)
-                .setVisible(true);
+                .setVisible(true)
+                .setEnabled(true);
     }
 
     public void hideFragmentOptionItems() {
@@ -237,8 +240,13 @@ public class PhotosFragment extends Fragment {
             return;
         }
         // start editor activity
-
-        Log.e(TAG, "Edit photo");
+        Intent intent = new Intent(getContext(), PhotoEditor.class);
+        intent.setData(Uri.parse(adapter.getSelectedPhotos().get(0).getPath()));
+        try{
+            startActivity(intent);
+        } catch (Exception e){
+            Log.e(TAG, "Error starting editor activity");
+        }
     }
 
     public void viewPhoto(Photo photo) {
