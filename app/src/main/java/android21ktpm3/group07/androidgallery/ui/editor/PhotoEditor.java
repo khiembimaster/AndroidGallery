@@ -1,11 +1,16 @@
 package android21ktpm3.group07.androidgallery.ui.editor;
 
+import static android.os.Environment.getExternalStoragePublicDirectory;
+
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -31,7 +36,12 @@ import com.mrudultora.colorpicker.ColorPickerDialog;
 import com.mrudultora.colorpicker.listeners.OnSelectColorListener;
 import com.mrudultora.colorpicker.util.ColorItemShape;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import android21ktpm3.group07.androidgallery.BottomSheetFragment;
@@ -157,29 +167,48 @@ public class PhotoEditor extends AppCompatActivity implements View.OnClickListen
 
 
         binding.saveImageButton.setOnClickListener(v -> {
-            SaveSettings saveSettings = new SaveSettings.Builder()
-                    .setClearViewsEnabled(true)
-                    .setTransparencyEnabled(true)
-                    .setCompressFormat(Bitmap.CompressFormat.PNG)
-                    .setCompressQuality(100)
-                    .build();
+            // Create an image file name
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            String imageFileName = "AndroidGallery_" + "JPEG_" + timeStamp + "_";
+            File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
+            try {
+                File image = File.createTempFile(
+                        imageFileName,  /* prefix */
+                        ".jpg",         /* suffix */
+                        storageDir      /* directory */
+                );
+
+                SaveSettings saveSettings = new SaveSettings.Builder()
+                        .setClearViewsEnabled(true)
+                        .setTransparencyEnabled(true)
+                        .setCompressFormat(Bitmap.CompressFormat.JPEG)
+                        .setCompressQuality(100)
+                        .build();
+                mPhotoEditor.saveAsFile(image.getPath(), saveSettings, new ja.burhanrashid52.photoeditor.PhotoEditor.OnSaveListener() {
+                    @Override
+                    public void onSuccess(@NonNull String imagePath) {
+                        Log.e("PhotoEditor","Image Saved Successfully at " + imagePath);
+
+                        try {
+                            MediaStore.Images.Media.insertImage(getContentResolver(), imagePath, imageFileName , "AndroidGallery Image");
+                            Toast.makeText(PhotoEditor.this, "Image Saved Successfully", Toast.LENGTH_SHORT).show();
+                        } catch (FileNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        Log.e("PhotoEditor","Failed to save Image");
+                        Toast.makeText(PhotoEditor.this, "Failed to save Image", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
 
-
-
-            mPhotoEditor.saveAsFile(uri.getPath(),saveSettings, new ja.burhanrashid52.photoeditor.PhotoEditor.OnSaveListener() {
-                @Override
-                public void onSuccess(@NonNull String imagePath) {
-                    Log.e("PhotoEditor","Image Saved Successfully at " + imagePath);
-                    Toast.makeText(PhotoEditor.this, "Image Saved Successfully", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onFailure(@NonNull Exception exception) {
-                    Log.e("PhotoEditor","Failed to save Image");
-                    Toast.makeText(PhotoEditor.this, "Failed to save Image", Toast.LENGTH_SHORT).show();
-                }
-            });
         });
     }
 
