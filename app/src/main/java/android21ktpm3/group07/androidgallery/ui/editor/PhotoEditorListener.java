@@ -18,39 +18,17 @@ import ja.burhanrashid52.photoeditor.OnPhotoEditorListener;
 import ja.burhanrashid52.photoeditor.PhotoEditor;
 import ja.burhanrashid52.photoeditor.ViewType;
 
-public class PhotoEditorListener implements OnPhotoEditorListener {
+public class PhotoEditorListener implements OnPhotoEditorListener, OnSelectColorListener {
     PhotoEditor mphotoEditor;
     RelativeLayout mSurfaceView;
     EditText mEditText;
     Button mButton;
-    Button mcolorPickerDialog;
-    public PhotoEditorListener(PhotoEditor photoEditor, RelativeLayout surfaceView, EditText editText, Button button, Button colorPickerDialogButton){
+    ColorPickerDialog colorPickerDialog;
+    public PhotoEditorListener(PhotoEditor photoEditor, RelativeLayout surfaceView, EditText editText, Button button){
         mphotoEditor = photoEditor;
         mEditText = editText;
         mSurfaceView = surfaceView;
         mButton = button;
-        mcolorPickerDialog = colorPickerDialogButton;
-
-        mcolorPickerDialog.setOnClickListener(v -> {
-            ColorPickerDialog colorPickerDialog = new ColorPickerDialog(v.getContext());   // Pass the context.
-            colorPickerDialog.show();	// Show the dialog.
-            colorPickerDialog.setColors()
-                    .setColumns(4)                        		// Default number of columns is 5.
-                    .setDefaultSelectedColor(1)		// By default no color is used.
-                    .setColorItemShape(ColorItemShape.CIRCLE)
-                    .setOnSelectColorListener(new OnSelectColorListener() {
-                        @Override
-                        public void onColorSelected(int color, int position) {
-                            // handle color or position
-                            mEditText.setTextColor(color);
-                        }
-
-                        @Override
-                        public void cancel() {
-                            colorPickerDialog.dismissDialog();	// Dismiss the dialog.
-                        }
-                    });
-        });
     }
     @Override
     public void onAddViewListener(@NonNull ViewType viewType, int i) {
@@ -86,5 +64,19 @@ public class PhotoEditorListener implements OnPhotoEditorListener {
     @Override
     public void onTouchSourceImage(@NonNull MotionEvent motionEvent) {
 
+    }
+
+    public void setColorPickerDialog(ColorPickerDialog colorPickerDialog){
+        this.colorPickerDialog = colorPickerDialog;
+    }
+    @Override
+    public void onColorSelected(int color, int position) {
+        // handle color or position
+        mEditText.setTextColor(color);
+    }
+
+    @Override
+    public void cancel() {
+        colorPickerDialog.dismissDialog();	// Dismiss the dialog.
     }
 }

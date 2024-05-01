@@ -10,13 +10,39 @@
     <ja.burhanrashid52.photoeditor.PhotoEditorView
         android:id="@+id/photoEditorView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_edit_action"/>
+
+    <Button
+        android:id="@+id/closeEditorButton"
+        style="?attr/materialIconButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:scaleX="2"
+        android:scaleY="2"
+        app:icon="@drawable/close_fill0_wght700_grad200_opsz48"
+        />
+    <Button
+        android:id="@+id/saveImageButton"
+        style="?attr/materialIconButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:scaleX="2"
+        android:scaleY="2"
+        app:icon="@drawable/save_fill0_wght700_grad200_opsz48"
+        />
+
     <RelativeLayout
         android:fitsSystemWindows="true"
         android:background="#99000000"
         android:id="@+id/addTextSurfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_above="@id/bottom_edit_action"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone"
@@ -26,30 +52,55 @@
             android:id="@+id/saveChangesButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Save changes button"
             android:layout_margin="16dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-            />
-        <Button
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:id="@+id/openColorDialogButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Open color picker"
-            android:layout_marginEnd="16dp"
-            android:layout_below="@id/saveChangesButton"
-            android:layout_alignParentEnd="true"
+            app:icon="@drawable/done_outline_fill0_wght700_grad200_opsz48"
+            android:text="Done"
             />
         <EditText
             android:id="@+id/addTextEditText"
+            android:textSize="36dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:hint="Enter text here"
             />
+        <Button
+            style="?attr/materialIconButtonFilledTonalStyle"
+            android:id="@+id/openColorDialogButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:layout_alignEnd="@id/saveChangesButton"
+            android:layout_below="@id/saveChangesButton"
+            android:layout_alignParentEnd="true"
+            android:text="Open Color Palette"
+            app:icon="@drawable/palette_fill0_wght700_grad200_opsz48"
+            android:contentDescription="Open Color Palette" />
     </RelativeLayout>
 
+    <LinearLayout
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/bottom_edit_action"
+        android:layout_width="wrap_content"
+        android:id="@+id/brush_settings"
+        android:layout_height="wrap_content">
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/palette_fill0_wght700_grad200_opsz48"
+            android:layout_margin="10dp"
+            android:id="@+id/fab_color_palette"
+            />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/tune_fill0_wght700_grad200_opsz48"
+            android:layout_margin="10dp"
+            android:id="@+id/fab_brush_settings"
+            />
+    </LinearLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:layout_alignParentBottom="true"
