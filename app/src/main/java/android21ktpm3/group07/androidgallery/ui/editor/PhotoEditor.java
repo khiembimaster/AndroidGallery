@@ -155,8 +155,6 @@ public class PhotoEditor extends AppCompatActivity implements View.OnClickListen
                 //     mPhotoEditor.redo();
                 //     return true;
                 // }
-
-
                 return false;
             }
         });
@@ -164,8 +162,12 @@ public class PhotoEditor extends AppCompatActivity implements View.OnClickListen
         binding.closeEditorButton.setOnClickListener(v -> {
             finish();
         });
-
-
+        binding.btnUndo.setOnClickListener(v -> {
+            mPhotoEditor.undo();
+        });
+        binding.btnRedo.setOnClickListener(v -> {
+            mPhotoEditor.redo();
+        });
         binding.saveImageButton.setOnClickListener(v -> {
             // Create an image file name
             String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
@@ -193,6 +195,9 @@ public class PhotoEditor extends AppCompatActivity implements View.OnClickListen
                         try {
                             MediaStore.Images.Media.insertImage(getContentResolver(), imagePath, imageFileName , "AndroidGallery Image");
                             Toast.makeText(PhotoEditor.this, "Image Saved Successfully", Toast.LENGTH_SHORT).show();
+                            if(image.delete()){
+                                Log.e("PhotoEditor","Temp File Deleted Successfully");
+                            }
                         } catch (FileNotFoundException e) {
                             throw new RuntimeException(e);
                         }
@@ -207,8 +212,6 @@ public class PhotoEditor extends AppCompatActivity implements View.OnClickListen
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-
-
         });
     }
 

@@ -11,29 +11,16 @@
         android:id="@+id/photoEditorView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/bottom_edit_action"/>
+        android:layout_above="@id/brush_settings"/>
 
     <Button
         android:id="@+id/closeEditorButton"
+        android:scaleX="2"
+        android:scaleY="2"
         style="?attr/materialIconButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:scaleX="2"
-        android:scaleY="2"
         app:icon="@drawable/close_fill0_wght700_grad200_opsz48"
-        />
-    <Button
-        android:id="@+id/saveImageButton"
-        style="?attr/materialIconButtonStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:scaleX="2"
-        android:scaleY="2"
-        app:icon="@drawable/save_fill0_wght700_grad200_opsz48"
         />
 
     <RelativeLayout
@@ -81,7 +68,7 @@
     </RelativeLayout>
 
     <LinearLayout
-        android:layout_alignParentEnd="true"
+        android:layout_alignParentStart="true"
         android:layout_above="@id/bottom_edit_action"
         android:layout_width="wrap_content"
         android:id="@+id/brush_settings"
@@ -101,6 +88,40 @@
             android:id="@+id/fab_brush_settings"
             />
     </LinearLayout>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/bottom_edit_action"
+        android:layout_alignBaseline="@id/brush_settings"
+        android:layout_width="wrap_content"
+        android:id="@+id/uno_redo"
+        app:singleSelection="true"
+        android:layout_margin="16dp"
+        android:layout_height="wrap_content">
+
+        <Button
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            app:icon="@drawable/undo_fill0_wght700_grad200_opsz48"
+            android:id="@+id/btn_undo"
+            />
+        <Button
+            android:id="@+id/saveImageButton"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/save_fill0_wght700_grad200_opsz48"
+            />
+        <Button
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/redo_fill0_wght700_grad200_opsz48"
+            android:id="@+id/btn_redo"
+            />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:layout_alignParentBottom="true"
