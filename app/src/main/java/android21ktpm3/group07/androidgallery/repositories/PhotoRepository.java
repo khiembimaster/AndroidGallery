@@ -134,7 +134,9 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DESCRIPTION
+                MediaStore.Images.Media.DESCRIPTION,
+                MediaStore.Images.Media.IS_FAVORITE
+
 
         };
 
@@ -143,6 +145,7 @@ public class PhotoRepository {
         try (Cursor cursor = context.getContentResolver().query(collection, projection, null,
                 null, null)) {
             if (cursor.moveToFirst()) {
+                int IDColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media._ID);
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
                 int ModifiedDateColumnIdx =
@@ -150,15 +153,20 @@ public class PhotoRepository {
                 int TakenDateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
+                int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media.IS_FAVORITE);
+
                 do {
+                    long id = cursor.getLong(IDColumnIdx);
                     String path = cursor.getString(PathColumnIdx);
                     String name = cursor.getString(NameColumnIdx);
                     long modifiedDate = cursor.getLong(ModifiedDateColumnIdx) * 1000; //  s to ms
                     long takenDate = cursor.getLong(TakenDateColumnIdx);
                     String tags = cursor.getString(tagsColumnIdx);
                     double fileSize = cursor.getDouble(fileSizeColumnIdx);
+                    String isFavourite = cursor.getString(favouriteIdx);
+
                     if (path == null) continue;
-                    photos.add(new Photo(path, name, modifiedDate, takenDate, tags, fileSize));
+                    photos.add(new Photo(id,path, name, modifiedDate, takenDate, tags, fileSize, isFavourite));
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
@@ -184,7 +192,9 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.BUCKET_ID,
                 MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DESCRIPTION
+                MediaStore.Images.Media.DESCRIPTION,
+                MediaStore.Images.Media.IS_FAVORITE
+
         };
 
         ArrayList<Photo> photos = new ArrayList<>();
@@ -196,22 +206,29 @@ public class PhotoRepository {
                 new String[]{String.valueOf(albumBucketID)},
                 null)) {
             if (cursor.moveToFirst()) {
+                int IDColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media._ID);
+
                 int PathColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
                 int modifiedDateColumnIdx =
                         cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
                 int takenDateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
+                int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media.IS_FAVORITE);
+
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
                 do {
+                    long id = cursor.getLong(IDColumnIdx);
                     String path = cursor.getString(PathColumnIdx);
                     String name = cursor.getString(NameColumnIdx);
                     long modifiedDate = cursor.getLong(modifiedDateColumnIdx) * 1000; /// s to ms
                     long takenDate = cursor.getLong(takenDateColumnIdx);
                     String tags = cursor.getString(tagsColumnIdx);
                     double fileSize = cursor.getDouble(fileSizeColumnIdx);
+                    String isFavourite = cursor.getString(favouriteIdx);
+
                     if (path == null) continue;
-                    photos.add(new Photo(path, name, modifiedDate, takenDate, tags, fileSize));
+                    photos.add(new Photo(id,path, name, modifiedDate, takenDate, tags, fileSize,  isFavourite));
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {

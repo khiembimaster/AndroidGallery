@@ -128,6 +128,11 @@ public class PhotosFragment extends Fragment {
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(context);
         binding.recyclerView.setLayoutManager(layoutManager);
+
+        // Initialize the RecyclerView adapter
+        initializeRecyclerView();
+
+        // Set the adapter to the RecyclerView
         binding.recyclerView.setAdapter(adapter);
     }
 
@@ -228,6 +233,11 @@ public class PhotosFragment extends Fragment {
         intent.putExtra("photo_tags", photo.getTags());
         intent.putExtra("photo_date", photo.getModifiedDate());
         intent.putExtra("photo_size", photo.getFileSize());
+        intent.putExtra("photo_name", photo.getName());
+        intent.putExtra("photo_takenDate", photo.getTakenDate());
+        intent.putExtra("photo_isFavourite", photo.getIsFavourite());
+        intent.putExtra("photo_id", photo.getId());
+
 
         startActivity(intent);
     }

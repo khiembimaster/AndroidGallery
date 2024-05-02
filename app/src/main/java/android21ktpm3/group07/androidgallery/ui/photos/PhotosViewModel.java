@@ -122,12 +122,14 @@ public class PhotosViewModel extends ViewModel {
         long time = Instant.now().plus(Period.ofDays(20)).toEpochMilli();
         List<Photo> list = new ArrayList<>();
         list.add(new Photo(
+                0,
                 test.getPath(),
                 "test",
                 time,
                 time,
                 "",
-                0
+                0,
+                "0"
         ));
         AddPhotos(list);
     }
