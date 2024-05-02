@@ -36,10 +36,14 @@ import javax.annotation.Nullable;
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhoto;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhotosDatabase;
 
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
     private final Context context;
+    private LikedPhotosDatabase database;
+
     private final ContentResolver contentResolver;
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -70,10 +74,12 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATA,
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.BUCKET_ID
-
         };
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
+
+        // Query Room for liked photos
+        List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
 
         try (Cursor cursor = context.getContentResolver().query(
                 collection,
@@ -91,22 +97,44 @@ public class PhotoRepository {
                     long fileDate = cursor.getLong(DateColumnIdx) * 1000;
 
                     File folder = new File(filePath).getParentFile();
+                    if (filePath.startsWith("/storage/emulated/0/Pictures/Favorites")) {
+                        for (LikedPhoto likedPhoto : likedPhotos) {
+                            String photoUrl = likedPhoto.getPhotoUrl();
 
-                    Album album = albumsMap.get(folder.getPath());
-                    if (album != null) {
-                        album.setSize(album.getSize() + 1);
-                        if (album.getLastModifiedDate() < fileDate) {
-                            album.setLastModifiedDate(fileDate);
-                            album.setCoverPhotoPath(filePath);
+                            // Get the folder path of the photo
+                            File folderImg = new File(photoUrl).getParentFile();
+                            String folderPath = folderImg.getPath();
+
+                            // Update the album information
+                            Album album = albumsMap.get(folderPath);
+                            if (album != null) {
+                                album.setSize(album.getSize() + 1);
+                                album.setCoverPhotoPath(photoUrl);
+                            } else {
+                                // Create a new album entry if it doesn't exist
+                                fileDate = folder.lastModified();
+                                long bucketID = folder.hashCode(); // You can set a unique ID for each album based on folder path or any other criteria
+                                album = new Album(folder.getName(), folderPath, photoUrl, fileDate, bucketID);
+                                albumsMap.put(folderPath, album);
+                            }
                         }
                     } else {
-                        albumsMap.put(folder.getPath(), new Album(
-                                folder.getName(),
-                                folder.getPath(),
-                                filePath,
-                                fileDate,
-                                BucketID
-                        ));
+                        Album album = albumsMap.get(folder.getPath());
+                        if (album != null) {
+                            album.setSize(album.getSize() + 1);
+                            if (album.getLastModifiedDate() < fileDate) {
+                                album.setLastModifiedDate(fileDate);
+                                album.setCoverPhotoPath(filePath);
+                            }
+                        } else {
+                            albumsMap.put(folder.getPath(), new Album(
+                                    folder.getName(),
+                                    folder.getPath(),
+                                    filePath,
+                                    fileDate,
+                                    BucketID
+                            ));
+                        }
                     }
                 } while (cursor.moveToNext());
             }
