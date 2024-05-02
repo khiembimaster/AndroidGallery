@@ -14,6 +14,7 @@ import android21ktpm3.group07.androidgallery.services.PhotoService;
 import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
 
 // TODO: Very very stupid way to do this, Should refactor later
+
 public class _AlbumPhotosFragment extends PhotosFragment {
     private final String TAG = this.getClass().getSimpleName();
 

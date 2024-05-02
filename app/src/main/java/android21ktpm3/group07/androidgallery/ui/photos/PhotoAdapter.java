@@ -8,6 +8,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import androidx.annotation.NonNull;
+import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ObservableList;
 import androidx.recyclerview.widget.RecyclerView;
@@ -79,6 +80,18 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         return photos.stream().filter(Photo::isSelected).collect(Collectors.toList());
     }
 
+    public void clearSelectedPhoto() {
+        int count = 0;
+        for (Photo photo : photos) {
+            if (photo.isSelected()) {
+                photo.setSelected(false);
+                ++count;
+            }
+        }
+
+        selectingModeCallback.onClearAllItems(count);
+    }
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -105,13 +118,13 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 
         // TODO refactor this
         // FIXME scroll not to far and
-        if (photo.isSelected()) {
-            Animation animation = AnimationUtils.loadAnimation(context, R.anim.scale_down);
-            animation.setFillEnabled(true);
-            animation.setFillAfter(true);
-            animation.setDuration(0);
-            holder.binding.imageView.startAnimation(animation);
-        }
+        // if (photo.isSelected()) {
+        //     Animation animation = AnimationUtils.loadAnimation(context, R.anim.scale_down);
+        //     animation.setFillEnabled(true);
+        //     animation.setFillAfter(true);
+        //     animation.setDuration(0);
+        //     holder.binding.imageView.startAnimation(animation);
+        // }
 
 
         // Glide.with(context)
@@ -165,7 +178,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         if (selectingModeCallback.isInSelectingMode()) {
             if (photo.isSelected()) {
                 photo.setSelected(false);
-                view.startAnimation(holder.scaleUp);
+                // view.startAnimation(holder.scaleUp);
                 selectingModeCallback.onRemoveItem();
 
                 if (actionCallback != null) {
@@ -173,7 +186,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                 }
             } else {
                 photo.setSelected(true);
-                view.startAnimation(holder.scaleDown);
+                // view.startAnimation(holder.scaleDown);
                 selectingModeCallback.onAddItem();
 
                 if (actionCallback != null) {
@@ -192,12 +205,28 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     private void onItemLongClick(ViewHolder holder, View view, Photo photo) {
         if (!selectingModeCallback.isInSelectingMode()) {
             photo.setSelected(true);
-            view.startAnimation(holder.scaleDown);
+            // view.startAnimation(holder.scaleDown);
             selectingModeCallback.onAddItem();
 
             if (actionCallback != null) {
                 actionCallback.onItemSelect(photo);
             }
+        }
+    }
+
+    @BindingAdapter("animate")
+    public static void setAnimation(View view, Boolean isSelected) {
+        if (isSelected) {
+            Animation scaleDown = AnimationUtils.loadAnimation(view.getContext(),
+                    R.anim.scale_down);
+            scaleDown.setFillEnabled(true);
+            scaleDown.setFillAfter(true);
+            view.startAnimation(scaleDown);
+        } else {
+            Animation scaleUp = AnimationUtils.loadAnimation(view.getContext(), R.anim.scale_up);
+            scaleUp.setFillEnabled(true);
+            scaleUp.setFillAfter(true);
+            view.startAnimation(scaleUp);
         }
     }
 
@@ -215,6 +244,8 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
         void onAddItem();
 
         void onRemoveItem();
+
+        void onClearAllItems(int num);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {

@@ -63,6 +63,15 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
                     selectingModeDisplayingCallback.onExit();
                 }
             }
+
+            @Override
+            public void onClearAllItems(int num) {
+                selectedCount -= num;
+
+                if (selectedCount == 0 && selectingModeDisplayingCallback != null) {
+                    selectingModeDisplayingCallback.onExit();
+                }
+            }
         };
 
 
@@ -130,6 +139,14 @@ public class PhotosRecyclerAdapter extends RecyclerView.Adapter<PhotosRecyclerAd
                 })
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
+    }
+
+    public void clearSelectedPhotos() {
+        items.forEach(item -> {
+            if (item.adapter != null) {
+                item.adapter.clearSelectedPhoto();
+            }
+        });
     }
 
     @NonNull

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <FrameLayout
+        android:id="@+id/standard_bottom_sheet"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_fitToContents="true"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <!-- Bottom sheet contents. -->
+        <LinearLayout
+            android:layout_gravity="bottom"
+            android:background="@color/md_theme_secondaryFixed_mediumContrast"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- SeekBar for Brush Size -->
+            <TextView
+                android:id="@+id/brushSizeLabel"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/material_on_primary_emphasis_medium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Brush Size"
+                android:padding="8dp"/>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/seekBarBrushSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="1.0"
+                android:value="1.0"
+                android:valueTo="100.0"/>  <!-- Default size -->
+
+            <!-- SeekBar for Opacity -->
+            <TextView
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/material_on_primary_emphasis_medium"
+                android:id="@+id/opacityLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Opacity"
+                android:padding="8dp"/>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/seekBarOpacity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="0"
+                android:value="255"
+                android:valueTo="255" />  <!-- Default opacity (fully opaque) -->
+        </LinearLayout>
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

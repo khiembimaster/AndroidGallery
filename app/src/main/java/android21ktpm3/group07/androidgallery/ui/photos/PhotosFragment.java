@@ -38,6 +38,7 @@ import android21ktpm3.group07.androidgallery.helpers.IntentSenderLauncher;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
 import android21ktpm3.group07.androidgallery.services.PhotoService;
+import android21ktpm3.group07.androidgallery.ui.editor.PhotoEditor;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -68,9 +69,19 @@ public class PhotosFragment extends Fragment {
         intentSenderLauncher = new IntentSenderLauncher(this);
 
         menuItemHandler = (IMenuItemHandler) context;
-        menuItemHandler.setOnShareItemClickListener(this::sharePhotos);
-        menuItemHandler.setOnDeleteItemClickListener(this::deletePhotos);
+        menuItemHandler.setOnShareItemClickListener(() -> {
+            sharePhotos();
+            adapter.clearSelectedPhotos();
 
+        });
+        menuItemHandler.setOnDeleteItemClickListener(() -> {
+            deletePhotos();
+            adapter.clearSelectedPhotos();
+        });
+        menuItemHandler.setOnEditItemClickListener(() -> {
+            editPhoto();
+            adapter.clearSelectedPhotos();
+        });
         menuItemHandler.setOnCreateNewItemClickListener(() -> {
             photosViewModel.test();
             // photoService.updateSyncingStatus(photosViewModel.getPhotosData());
@@ -198,7 +209,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit) {
                 item.setVisible(true);
                 item.setEnabled(true);
             } else {
@@ -214,7 +225,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit) {
                 item.setVisible(false);
                 item.setEnabled(false);
             } else {
@@ -240,13 +251,33 @@ public class PhotosFragment extends Fragment {
     }
 
     public void deletePhotos() {
+        List<Photo> selectedPhotos = adapter.getSelectedPhotos();
         executor.execute(() -> {
             photoRepository.deleteLocalPhotos(
-                    adapter.getSelectedPhotos(),
+                    selectedPhotos,
                     intentSenderLauncher,
                     null
             );
         });
+    }
+
+    public void editPhoto() {
+        if (adapter.getSelectedPhotos().size() > 1) {
+            Snackbar.make(
+                    binding.getRoot(),
+                    "Cannot edit multiple photos",
+                    Snackbar.LENGTH_SHORT
+            ).show();
+            return;
+        }
+        // start editor activity
+        Intent intent = new Intent(getContext(), PhotoEditor.class);
+        intent.setData(Uri.parse(adapter.getSelectedPhotos().get(0).getPath()));
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting editor activity");
+        }
     }
 
     public void viewPhoto(Photo photo) {

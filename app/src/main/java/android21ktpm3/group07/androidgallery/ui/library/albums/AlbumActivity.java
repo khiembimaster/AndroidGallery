@@ -2,21 +2,16 @@ package android21ktpm3.group07.androidgallery.ui.library.albums;
 
 import android.os.Bundle;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.ui.AppBarConfiguration;
+
 import com.google.android.material.snackbar.Snackbar;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.view.View;
-
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
-import android21ktpm3.group07.androidgallery.databinding.ActivityAlbumBinding;
-
 import android21ktpm3.group07.androidgallery.R;
+import android21ktpm3.group07.androidgallery.databinding.ActivityAlbumBinding;
+import dagger.hilt.android.AndroidEntryPoint;
 
+@AndroidEntryPoint
 public class AlbumActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
@@ -31,7 +26,8 @@ public class AlbumActivity extends AppCompatActivity {
 
 //        setSupportActionBar(binding.toolbar);
 
-        binding.fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+        binding.fab.setOnClickListener(view -> Snackbar.make(view, "Replace with your own action"
+                        , Snackbar.LENGTH_LONG)
                 .setAnchorView(R.id.fab)
                 .setAction("Action", null).show());
     }
