@@ -33,9 +33,11 @@ import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -204,62 +206,53 @@ public class ImageActivity extends AppCompatActivity {
                 }
             }
 
-            Glide.with(this)
-                    .asBitmap()
-                    .load(photoPath)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
-                            saveImageInBackground(favoritesDirectory, resource);
-                        }
+            // Create a new file in the Favorites directory with the same name as the original file
+            File favoriteFile = new File(favoritesDirectory, photoName);
 
-                        @Override
-                        public void onLoadCleared(Drawable placeholder) {
-                            // Nothing to do here
-                        }
-                    });
+            try {
+                // Copy the original file to the new file in the Favorites directory
+                File originalFile = new File(photoPath);
+                copyFile(originalFile, favoriteFile);
+
+                // Delete the original file
+                if (originalFile.delete()) {
+                    // If deletion is successful, show a toast message
+                    Toast.makeText(this, "Image moved to Favorites", Toast.LENGTH_SHORT).show();
+                } else {
+                    // If deletion fails, show an error message
+                    Toast.makeText(this, "Failed to move image to Favorites", Toast.LENGTH_SHORT).show();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to move image to Favorites", Toast.LENGTH_SHORT).show();
+            }
         } else {
             Toast.makeText(this, "External storage not available", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void saveImageInBackground(File favoritesDirectory, Bitmap bitmap) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                System.out.println("name photo" + photoName);
-                File favoriteFile = new File(favoritesDirectory, photoName);
-                try {
-                    OutputStream fos = new FileOutputStream(favoriteFile);
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                    fos.close();
+    private void copyFile(File sourceFile, File destFile) throws IOException {
+        if (!sourceFile.exists()) {
+            return;
+        }
 
-                    ContentValues values = new ContentValues();
-                    values.put(MediaStore.Images.Media.DATA, favoriteFile.getAbsolutePath());
-                    values.put(MediaStore.Images.Media.DATE_MODIFIED, photoDate / 1000);
-                    values.put(MediaStore.Images.Media.DATE_TAKEN, takenDate);
-                    values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                    getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        FileChannel source = null;
+        FileChannel destination = null;
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(ImageActivity.this, "Image saved to Favorites", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(ImageActivity.this, "Failed to save image to Favorites", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
+        try {
+            source = new FileInputStream(sourceFile).getChannel();
+            destination = new FileOutputStream(destFile).getChannel();
+            destination.transferFrom(source, 0, source.size());
+        } finally {
+            if (source != null) {
+                source.close();
             }
-        });
+            if (destination != null) {
+                destination.close();
+            }
+        }
     }
+
     public void updatePhotoFavouriteStatus(long photoId, String isFavourite) {
         ContentValues values = new ContentValues();
         String newStatus = Objects.equals(isFavourite, "0") ? "1" : "0";
