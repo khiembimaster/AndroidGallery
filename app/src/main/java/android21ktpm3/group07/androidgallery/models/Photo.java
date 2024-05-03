@@ -48,9 +48,7 @@ public class Photo extends BaseObservable implements Parcelable {
     public Photo( String path) {
 
         this.path = path;
-        this.isFavourite = "1";
-        LocalDate currentDate = LocalDate.now();
-        takenDate = currentDate.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
+
     }
 
     protected Photo(Parcel in) {
