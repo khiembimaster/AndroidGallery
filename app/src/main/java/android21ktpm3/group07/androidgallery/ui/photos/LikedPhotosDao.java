@@ -23,4 +23,7 @@ public interface LikedPhotosDao {
     void delete(LikedPhoto likedPhoto);
     @Query("DELETE FROM liked_photos WHERE photo_url = :photoUrl")
     void deleteById(String photoUrl);
+
+    @Query("UPDATE liked_photos SET photo_comments = :newComment WHERE photo_url = :photoUrl")
+    void updateComment(String newComment, String photoUrl);
 }

@@ -18,6 +18,11 @@ public class LikedPhoto {
     @ColumnInfo(name = "photo_url")
     private String photoUrl;
 
+    @ColumnInfo(name = "photo_comments")
+    private String comment;
+
+
+
 
 
     public LikedPhoto(String photoUrl) {
@@ -26,6 +31,14 @@ public class LikedPhoto {
 
     public int getId() {
         return id;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     public void setId(int id) {

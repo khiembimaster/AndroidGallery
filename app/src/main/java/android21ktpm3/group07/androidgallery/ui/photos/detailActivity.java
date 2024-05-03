@@ -26,8 +26,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
+import androidx.room.Room;
 
 import java.util.Date;
+import java.util.List;
 
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
@@ -42,6 +44,11 @@ public class detailActivity extends Dialog {
     double photoSize;
     String photoTags;
     String photoPath;
+    private LikedPhotosDatabase database;
+    Context context;
+    boolean urlExists = false;
+
+
 
     private final PhotoRepository photoRepository; // Thêm một biến thành viên để lưu trữ tham chiếu của PhotoRepository
 
@@ -49,6 +56,7 @@ public class detailActivity extends Dialog {
 
     public detailActivity(Context context, PhotoRepository photoRepository) {
         super(context);
+        this.context = context;
         this.photoRepository = photoRepository; // Lưu tham chiếu của PhotoRepository
         init();
     }
@@ -61,7 +69,6 @@ public class detailActivity extends Dialog {
         createdDateTextView = findViewById(R.id.createdDate);
         byteImageTextView = findViewById(R.id.byteImage);
         commentTextView = findViewById(R.id.comment);
-        loadCommentFromSharedPreferences();
 
 
         Window window = getWindow();
@@ -70,9 +77,6 @@ public class detailActivity extends Dialog {
 
 
 
-       // SharedPreferences sharedPreferences = getContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
-       // String savedComment = sharedPreferences.getString("comment", "");
-    //    commentTextView.setText(savedComment);
 
 
         commentTextView.setOnKeyListener(new View.OnKeyListener() {
@@ -81,9 +85,24 @@ public class detailActivity extends Dialog {
                 if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
 
 
-                    if (photoRepository != null) {
-                        photoRepository.updatePhoto(photoPath,photoTags,System.currentTimeMillis(),photoSize);
+
+
+
+
+
+
+                    if(!urlExists){
+                        LikedPhoto likedPhoto = new LikedPhoto(photoPath);
+                        database.likedPhotosDao().insert(likedPhoto);
+                        database.likedPhotosDao().updateComment(commentTextView.getText().toString()
+                                ,photoPath);
+                    } else{
+                        database.likedPhotosDao().updateComment(commentTextView.getText().toString()
+                                ,photoPath);
+
                     }
+
+
                     return true;
                 }
                 return false;
@@ -147,8 +166,21 @@ public class detailActivity extends Dialog {
         this.photoPath = photoPath;
        createdDateTextView.setText(modifiedDate);
         byteImageTextView.setText(Double.toString(photoSize));
-        commentTextView.setText(photoTags);
+        database = Room.databaseBuilder(context, LikedPhotosDatabase.class,
+                        "liked_photos.db")
+                .allowMainThreadQueries() // Only for demonstration. In a real app, perform
+                // database operations in background threads.
+                .build();
 
+
+        List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
+        for (LikedPhoto likedPhoto : likedPhotos) {
+            if (likedPhoto.getPhotoUrl().equals(photoPath)) {
+                commentTextView.setText(likedPhoto.getComment());
+                urlExists = true;
+                break;
+            }
+        }
 
 
     }

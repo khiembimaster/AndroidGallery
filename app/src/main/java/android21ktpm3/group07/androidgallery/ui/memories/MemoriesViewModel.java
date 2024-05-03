@@ -66,13 +66,16 @@ public class MemoriesViewModel extends ViewModel {
     public List<Photo> getPhotosGroupByDatePrevious() {
         // LocalDate currentDate = LocalDate.now();
 
-        LocalDate specificDate = LocalDate.of(2024, 5, 3);
+        LocalDate currentDate = LocalDate.now();
+
+        // Lấy ngày một năm trước từ ngày hiện tại
+        LocalDate oneYearAgo = currentDate.minusYears(1);
 
         return photos.stream()
                 .filter(photo -> {
 
                     LocalDate photoDate = toLocalDate(photo.getModifiedDate());
-                    return photoDate.isEqual(specificDate);
+                    return photoDate.isEqual(oneYearAgo);
                 })
                 .collect(Collectors.toList());
     }
