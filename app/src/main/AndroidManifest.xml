@@ -83,6 +83,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.photos.ImageActivity" />
+        <activity android:name=".ui.slideShow.SlideShowActivity" />
+        <activity android:name=".ui.memories.MemoriesActivity" />
 
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"

@@ -155,7 +155,7 @@ public class PhotoRepository {
 
                     File folder = new File(filePath).getParentFile();
                     boolean isInscreaseSize = true;
-                    if (filePath.startsWith("/storage/emulated/0/Pictures/Favorites")) {
+                    if (filePath.contains("Favorites")) {
                         Album album = albumsMap.get(folder.getPath());
                         if (album != null && isInscreaseSize) {
                             album.setSize(likedPhotos.size());
@@ -215,7 +215,7 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
                 MediaStore.Images.Media.DESCRIPTION,
-                MediaStore.Images.Media.IS_FAVORITE // check in data from room instead
+            //    MediaStore.Images.Media.IS_FAVORITE // check in data from room instead
         };
 
         String selection = null;
@@ -243,7 +243,7 @@ public class PhotoRepository {
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
 
-                int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media.IS_FAVORITE);
+           //     int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media.IS_FAVORITE);
 
                 do {
                     long id = cursor.getLong(idColumnIdx);

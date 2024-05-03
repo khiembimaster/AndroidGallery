@@ -45,6 +45,7 @@ public class Photo extends BaseObservable implements Parcelable {
         this.contentUri = contentUri;
     }
 
+
     protected Photo(Parcel in) {
         this.path = in.readString();
         this.name = in.readString();
@@ -53,6 +54,9 @@ public class Photo extends BaseObservable implements Parcelable {
         this.tags = in.readString();
         this.takenDate = in.readLong();
         this.contentUri = in.readParcelable(Uri.class.getClassLoader());
+        this.isFavourite = in.readByte() != 0;
+        this.isSelected = in.readByte() != 0;
+        this.remoteUrl = in.readString();
     }
 
     public String getPath() {
@@ -145,6 +149,19 @@ public class Photo extends BaseObservable implements Parcelable {
         Photo photo = (Photo) o;
         return Objects.equals(path, photo.path);
     }
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(path);
+        dest.writeString(name);
+        dest.writeLong(modifiedDate);
+        dest.writeDouble(fileSize);
+        dest.writeString(tags);
+        dest.writeLong(takenDate);
+        dest.writeParcelable(contentUri, flags);
+        dest.writeByte((byte) (isFavourite ? 1 : 0));
+        dest.writeByte((byte) (isSelected ? 1 : 0));
+        dest.writeString(remoteUrl);
+    }
 
     @Override
     public int hashCode() {
@@ -156,10 +173,6 @@ public class Photo extends BaseObservable implements Parcelable {
         return 0;
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(path);
-    }
 
     public static final Creator<Photo> CREATOR = new Creator<Photo>() {
         @Override
