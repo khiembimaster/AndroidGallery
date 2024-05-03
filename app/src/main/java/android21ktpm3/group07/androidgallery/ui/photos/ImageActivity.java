@@ -100,6 +100,8 @@ public class ImageActivity extends AppCompatActivity {
                     .into(display);
         }
 
+
+
         share = findViewById(R.id.btnShare);
         delete = findViewById(R.id.btnDelete);
         detail = findViewById(R.id.btnDetail);
@@ -130,17 +132,28 @@ public class ImageActivity extends AppCompatActivity {
     private void toggleLikeStatus() {
         if (Objects.equals(isFavourite, "0")) {
             like.setImageResource(R.drawable.heart);
-            isFavourite = "1";
+
+            updatePhoto(photoPath, "1");
             addLikedPhotoToDatabase(photoPath);
             Toast.makeText(this, "Added to Liked Photos", Toast.LENGTH_SHORT).show();
         } else {
             like.setImageResource(R.drawable.like);
-            isFavourite = "0";
+            updatePhoto(photoPath, "0");
             removeLikedPhotoFromDatabase(photoPath);
             Toast.makeText(this, "Removed from Liked Photos", Toast.LENGTH_SHORT).show();
         }
         List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
 
+    }
+    public void updatePhoto(String photoPath,String isFavourite) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.IS_FAVORITE, isFavourite);
+
+        String selection = MediaStore.Images.Media.DATA + "=?";
+        String[] selectionArgs = new String[]{photoPath};
+
+        contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection,
+                selectionArgs);
     }
 
     private void addLikedPhotoToDatabase(String photoUrl) {

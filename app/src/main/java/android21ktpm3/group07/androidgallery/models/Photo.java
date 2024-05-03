@@ -9,18 +9,20 @@ import androidx.databinding.Bindable;
 import java.time.LocalDate;
 import java.util.Objects;
 
+
 import android21ktpm3.group07.androidgallery.BR;
 import android21ktpm3.group07.androidgallery.helpers.DateHelper;
 
 public class Photo extends BaseObservable implements Parcelable {
     private final String path;
-    private final String name;
-    private final long modifiedDate;
-    private final long takenDate;
+    private String name;
+    private  long modifiedDate;
+    private  long takenDate;
 
     private String tags;
-private long id;
+    private long id;
     private String isFavourite;
+
 
     private double fileSize;
 
@@ -42,6 +44,13 @@ private long id;
         this.tags = tags;
         this.fileSize = fizeSize;
         this.isFavourite = isFavourite;
+    }
+    public Photo( String path) {
+
+        this.path = path;
+        this.isFavourite = "1";
+        LocalDate currentDate = LocalDate.now();
+        takenDate = currentDate.atStartOfDay().toEpochSecond(java.time.ZoneOffset.UTC) * 1000;
     }
 
     protected Photo(Parcel in) {

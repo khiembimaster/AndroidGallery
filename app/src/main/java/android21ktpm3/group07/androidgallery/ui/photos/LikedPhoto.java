@@ -18,6 +18,8 @@ public class LikedPhoto {
     @ColumnInfo(name = "photo_url")
     private String photoUrl;
 
+
+
     public LikedPhoto(String photoUrl) {
         this.photoUrl = photoUrl;
     }
@@ -37,5 +39,8 @@ public class LikedPhoto {
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
     }
+
+
+
 }
 

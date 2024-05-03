@@ -9,6 +9,8 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.room.Room;
+
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseUser;
@@ -42,6 +44,7 @@ import android21ktpm3.group07.androidgallery.ui.photos.LikedPhotosDatabase;
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
     private final Context context;
+    private long favouriteID;
     private LikedPhotosDatabase database;
 
     private final ContentResolver contentResolver;
@@ -57,9 +60,17 @@ public class PhotoRepository {
     }
 
 
+
     public PhotoRepository(Context context) {
 
         this.context = context;
+     //   database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked-photos-db").build();
+        this.contentResolver = null;
+    }
+    public PhotoRepository(Context context, LikedPhotosDatabase database) {
+        this.database = database;
+        this.context = context;
+        //   database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked-photos-db").build();
         this.contentResolver = null;
     }
 
@@ -77,8 +88,10 @@ public class PhotoRepository {
         };
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
+        database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked_photos.db")
+                .allowMainThreadQueries() // Only for demonstration. In a real app, perform database operations in background threads.
+                .build();
 
-        // Query Room for liked photos
         List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
 
         try (Cursor cursor = context.getContentResolver().query(
@@ -97,26 +110,21 @@ public class PhotoRepository {
                     long fileDate = cursor.getLong(DateColumnIdx) * 1000;
 
                     File folder = new File(filePath).getParentFile();
+                    boolean isInscreaseSize = true;
                     if (filePath.startsWith("/storage/emulated/0/Pictures/Favorites")) {
-                        for (LikedPhoto likedPhoto : likedPhotos) {
-                            String photoUrl = likedPhoto.getPhotoUrl();
-
-                            // Get the folder path of the photo
-                            File folderImg = new File(photoUrl).getParentFile();
-                            String folderPath = folderImg.getPath();
-
-                            // Update the album information
-                            Album album = albumsMap.get(folderPath);
-                            if (album != null) {
-                                album.setSize(album.getSize() + 1);
-                                album.setCoverPhotoPath(photoUrl);
-                            } else {
-                                // Create a new album entry if it doesn't exist
-                                fileDate = folder.lastModified();
-                                long bucketID = folder.hashCode(); // You can set a unique ID for each album based on folder path or any other criteria
-                                album = new Album(folder.getName(), folderPath, photoUrl, fileDate, bucketID);
-                                albumsMap.put(folderPath, album);
-                            }
+                        Album album = albumsMap.get(folder.getPath());
+                        if (album != null && isInscreaseSize) {
+                            album.setSize(likedPhotos.size());
+                           // album.setFavouriteAlbumID(BucketID);
+                            isInscreaseSize = false;
+                        } else {
+                            albumsMap.put(folder.getPath(), new Album(
+                                    folder.getName(),
+                                    folder.getPath(),
+                                    filePath,
+                                    fileDate,
+                                    -1
+                            ));
                         }
                     } else {
                         Album album = albumsMap.get(folder.getPath());
@@ -205,6 +213,23 @@ public class PhotoRepository {
     }
 
     public ArrayList<Photo> getPhotosInAlbum(long albumBucketID) {
+        ArrayList<Photo> photos = new ArrayList<>();
+
+
+        if (albumBucketID == -1){
+            database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked_photos.db")
+                    .allowMainThreadQueries() // Only for demonstration. In a real app, perform database operations in background threads.
+                    .build();
+
+            List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
+            for (LikedPhoto likedPhoto : likedPhotos) {
+                photos.add(new Photo(likedPhoto.getPhotoUrl()));
+            }
+
+            return photos;
+
+        }
+
         Uri collection;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
@@ -225,7 +250,7 @@ public class PhotoRepository {
 
         };
 
-        ArrayList<Photo> photos = new ArrayList<>();
+       // ArrayList<Photo> photos = new ArrayList<>();
 
         try (Cursor cursor = context.getContentResolver().query(
                 collection,
@@ -278,6 +303,7 @@ public class PhotoRepository {
         contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection,
                 selectionArgs);
     }
+
 
     public void setFirebaseUser(FirebaseUser user) {
         Log.d(TAG, "setFirebaseUser");
