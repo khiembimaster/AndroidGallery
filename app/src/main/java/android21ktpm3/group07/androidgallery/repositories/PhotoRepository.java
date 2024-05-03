@@ -18,6 +18,7 @@ import android.util.Log;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.room.Room;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
@@ -47,6 +48,8 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
 import android21ktpm3.group07.androidgallery.services.JobSchedulerService;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhoto;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhotosDatabase;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 
 /**
@@ -56,6 +59,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
     private final Context context;
+    private long favouriteID;
+    private LikedPhotosDatabase database;
+
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseStorage storage = FirebaseStorage.getInstance();
@@ -77,6 +83,11 @@ public class PhotoRepository {
                 mediaStoreChangedBroadcastReceiver,
                 new IntentFilter(JobSchedulerService.ACTION_MEDIA_STORE_CHANGED)
         );
+
+        database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked_photos.db")
+                // .allowMainThreadQueries() // Only for demonstration. In a real app, perform
+                // database operations in background threads.
+                .build();
     }
 
     public void destruct() {
@@ -118,10 +129,12 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATA,
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.BUCKET_ID
-
         };
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
+
+
+        List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
 
         try (
                 Cursor cursor = context.getContentResolver().query(
@@ -141,22 +154,39 @@ public class PhotoRepository {
                     long fileDate = cursor.getLong(DateColumnIdx) * 1000;
 
                     File folder = new File(filePath).getParentFile();
-
-                    Album album = albumsMap.get(folder.getPath());
-                    if (album != null) {
-                        album.setSize(album.getSize() + 1);
-                        if (album.getLastModifiedDate() < fileDate) {
-                            album.setLastModifiedDate(fileDate);
-                            album.setCoverPhotoPath(filePath);
+                    boolean isInscreaseSize = true;
+                    if (filePath.startsWith("/storage/emulated/0/Pictures/Favorites")) {
+                        Album album = albumsMap.get(folder.getPath());
+                        if (album != null && isInscreaseSize) {
+                            album.setSize(likedPhotos.size());
+                            // album.setFavouriteAlbumID(BucketID);
+                            isInscreaseSize = false;
+                        } else {
+                            albumsMap.put(folder.getPath(), new Album(
+                                    folder.getName(),
+                                    folder.getPath(),
+                                    filePath,
+                                    fileDate,
+                                    -1
+                            ));
                         }
                     } else {
-                        albumsMap.put(folder.getPath(), new Album(
-                                folder.getName(),
-                                folder.getPath(),
-                                filePath,
-                                fileDate,
-                                BucketID
-                        ));
+                        Album album = albumsMap.get(folder.getPath());
+                        if (album != null) {
+                            album.setSize(album.getSize() + 1);
+                            if (album.getLastModifiedDate() < fileDate) {
+                                album.setLastModifiedDate(fileDate);
+                                album.setCoverPhotoPath(filePath);
+                            }
+                        } else {
+                            albumsMap.put(folder.getPath(), new Album(
+                                    folder.getName(),
+                                    folder.getPath(),
+                                    filePath,
+                                    fileDate,
+                                    BucketID
+                            ));
+                        }
                     }
                 } while (cursor.moveToNext());
             }
@@ -184,7 +214,8 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DESCRIPTION
+                MediaStore.Images.Media.DESCRIPTION,
+                MediaStore.Images.Media.IS_FAVORITE // check in data from room instead
         };
 
         String selection = null;
@@ -212,6 +243,8 @@ public class PhotoRepository {
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
 
+                int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media.IS_FAVORITE);
+
                 do {
                     long id = cursor.getLong(idColumnIdx);
                     String path = cursor.getString(PathColumnIdx);
@@ -220,11 +253,12 @@ public class PhotoRepository {
                     long takenDate = cursor.getLong(TakenDateColumnIdx);
                     String tags = cursor.getString(tagsColumnIdx);
                     double fileSize = cursor.getDouble(fileSizeColumnIdx);
+                    // String isFavourite = cursor.getString(favouriteIdx);
 
                     Uri contentUri = ContentUris.withAppendedId(collection, id);
 
                     photos.add(new Photo(
-                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri
+                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri, false
                     ));
                 } while (cursor.moveToNext());
             }
@@ -255,6 +289,32 @@ public class PhotoRepository {
     }
 
     public ArrayList<Photo> getPhotosInAlbum(long albumBucketID) {
+        ArrayList<Photo> photos = new ArrayList<>();
+        if (albumBucketID == -1) {
+            database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked_photos.db")
+                    .allowMainThreadQueries() // Only for demonstration. In a real app, perform
+                    // database operations in background threads.
+                    .build();
+
+            List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
+            for (LikedPhoto likedPhoto : likedPhotos) {
+                // TODO: use MediaStore to get file metadata
+                photos.add(new Photo(
+                        likedPhoto.getPhotoUrl(),
+                        "",
+                        0,
+                        0,
+                        null,
+                        0,
+                        null,
+                        true
+                ));
+            }
+
+            return photos;
+
+        }
+
         return getLocalPhotos(albumBucketID);
     }
 
@@ -507,8 +567,9 @@ public class PhotoRepository {
                         double fileSize = cursor.getDouble(fileSizeColumnIdx);
 
                         for (MediaChangedCallback callback : mediaChangedCallbacks) {
+                            // TODO: query from room to get isFavourite
                             callback.onAdded(new Photo(
-                                    path, name, modifiedDate, takenDate, tags, fileSize, uri
+                                    path, name, modifiedDate, takenDate, tags, fileSize, uri, false
                             ));
                         }
                     } else {

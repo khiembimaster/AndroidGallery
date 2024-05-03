@@ -90,4 +90,12 @@ dependencies {
     implementation("com.burhanrashid52:photoeditor:3.0.2")
     // Color Picker
     implementation("com.github.mrudultora:Colorpicker:1.2.0")
+
+    // Storing data
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+//    implementation ("io.reactivex.rxjava3:rxjava:3.1.8")
+//    implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.1")
+    implementation("androidx.room:room-common:2.6.1")
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
 }

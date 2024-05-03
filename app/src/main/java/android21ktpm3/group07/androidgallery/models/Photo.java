@@ -21,6 +21,7 @@ public class Photo extends BaseObservable implements Parcelable {
     private final Uri contentUri;
 
     private String tags;
+    private boolean isFavourite;
 
     private double fileSize;
 
@@ -33,13 +34,14 @@ public class Photo extends BaseObservable implements Parcelable {
     private String remoteUrl = null;
 
     public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
-                 double fizeSize, Uri contentUri) {
+                 double fizeSize, Uri contentUri, boolean isFavourite) {
         this.path = path;
         this.name = name;
         this.modifiedDate = modifiedDate;
         this.takenDate = takenDate;
         this.tags = tags;
         this.fileSize = fizeSize;
+        this.isFavourite = isFavourite;
         this.contentUri = contentUri;
     }
 
@@ -83,6 +85,14 @@ public class Photo extends BaseObservable implements Parcelable {
 
     public long getTakenDate() {
         return takenDate;
+    }
+
+    public boolean getIsFavourite() {
+        return isFavourite;
+    }
+
+    public void setIsFavourite(boolean isFavourite) {
+        this.isFavourite = isFavourite;
     }
 
     public LocalDate getRepresentativeDate() {

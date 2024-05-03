@@ -14,6 +14,7 @@ public class Album {
 
     private long BucketID;
 
+
     public Album() {}
 
     public Album(String name, String path, String coverPhotoPath, long lastModifiedDate, long bucketID) {
@@ -24,6 +25,8 @@ public class Album {
         this.lastModifiedDate = lastModifiedDate;
         this.BucketID = bucketID;
     }
+
+
 
     public String getName() {
         return name;
