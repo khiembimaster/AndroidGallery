@@ -59,6 +59,7 @@ public class ImageActivity extends AppCompatActivity {
     Photo photo;
     long id;
     private LikedPhotosDatabase database;
+    boolean urlExists = false;
 
 
     ContentResolver contentResolver;
@@ -106,8 +107,23 @@ public class ImageActivity extends AppCompatActivity {
         delete = findViewById(R.id.btnDelete);
         detail = findViewById(R.id.btnDetail);
         like = findViewById(R.id.btnLike);
+        database = Room.databaseBuilder(getApplicationContext(), LikedPhotosDatabase.class, "liked_photos.db")
+                .allowMainThreadQueries() // Only for demonstration. In a real app, perform database operations in background threads.
+                .build();
 
-        if (Objects.equals(isFavourite, "0")) {
+
+
+        List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
+
+
+        for (LikedPhoto likedPhoto : likedPhotos) {
+            if (likedPhoto.getPhotoUrl().equals(photoPath)) {
+                urlExists = true;
+                break;
+            }
+        }
+
+        if (!urlExists) {
             like.setImageResource(R.drawable.like);
         } else {
             like.setImageResource(R.drawable.heart);
@@ -123,37 +139,23 @@ public class ImageActivity extends AppCompatActivity {
 
         detail.setOnClickListener(view -> showDetailDialog());
 
-        database = Room.databaseBuilder(getApplicationContext(), LikedPhotosDatabase.class, "liked_photos.db")
-                .allowMainThreadQueries() // Only for demonstration. In a real app, perform database operations in background threads.
-                .build();
 
-        like.setOnClickListener(view -> toggleLikeStatus());
+
+        like.setOnClickListener(view -> toggleLikeStatus(urlExists));
     }
-    private void toggleLikeStatus() {
-        if (Objects.equals(isFavourite, "0")) {
-            like.setImageResource(R.drawable.heart);
+    private void toggleLikeStatus(boolean isExist) {
 
-            updatePhoto(photoPath, "1");
+        if (!isExist) {
+            like.setImageResource(R.drawable.heart);
             addLikedPhotoToDatabase(photoPath);
             Toast.makeText(this, "Added to Liked Photos", Toast.LENGTH_SHORT).show();
         } else {
             like.setImageResource(R.drawable.like);
-            updatePhoto(photoPath, "0");
             removeLikedPhotoFromDatabase(photoPath);
+            isExist = false;
             Toast.makeText(this, "Removed from Liked Photos", Toast.LENGTH_SHORT).show();
         }
-        List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
 
-    }
-    public void updatePhoto(String photoPath,String isFavourite) {
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.IS_FAVORITE, isFavourite);
-
-        String selection = MediaStore.Images.Media.DATA + "=?";
-        String[] selectionArgs = new String[]{photoPath};
-
-        contentResolver.update(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values, selection,
-                selectionArgs);
     }
 
     private void addLikedPhotoToDatabase(String photoUrl) {
@@ -162,8 +164,7 @@ public class ImageActivity extends AppCompatActivity {
     }
 
     private void removeLikedPhotoFromDatabase(String photoUrl) {
-        LikedPhoto likedPhoto = new LikedPhoto(photoUrl);
-        database.likedPhotosDao().delete(likedPhoto);
+        database.likedPhotosDao().deleteById(photoUrl);
     }
 
 
@@ -175,50 +176,6 @@ public class ImageActivity extends AppCompatActivity {
             detailActivity dialog = new detailActivity(this, repository);
             dialog.setData(photoPath, photoDate, photoSize, photoTags);
             dialog.show();
-        }
-    }
-
-    private void updateMediaStore(File favoriteFile) {
-        Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.DATA, favoriteFile.getAbsolutePath());
-        values.put(MediaStore.Images.Media.IS_PENDING, 0);
-        String newStatus = Objects.equals(isFavourite, "0") ? "1" : "0";
-        values.put(MediaStore.Images.Media.IS_FAVORITE, newStatus);
-        String selection = MediaStore.Images.Media.DATA + "=?";
-        String[] selectionArgs = new String[]{favoriteFile.getAbsolutePath()};
-        int rowsUpdated = getContentResolver().update(uri, values, selection, selectionArgs);
-        Log.d("Update", "Rows updated: " + rowsUpdated);
-    }
-
-    public void updatePhotoFavouriteStatus(long photoId, String isFavourite) {
-        ContentValues values = new ContentValues();
-        String newStatus = Objects.equals(isFavourite, "0") ? "1" : "0";
-        values.put(MediaStore.Images.Media.IS_FAVORITE, newStatus);
-        String selection = MediaStore.Images.Media.DATA + "=?";
-        String[] selectionArgs = new String[]{photoPath};
-
-        if (contentResolver == null) {
-            Log.e("Update", "ContentResolver is null, cannot update photo favorite status");
-            return;
-        }
-
-        Uri collection;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
-        } else {
-            collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        }
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
-
-        int rowsUpdated = contentResolver.update(collection, values, selection, selectionArgs);
-        if (rowsUpdated > 0) {
-            Log.d("Update", "Rows updated: " + rowsUpdated);
-        } else {
-            Log.d("Update", "No rows updated");
         }
     }
 

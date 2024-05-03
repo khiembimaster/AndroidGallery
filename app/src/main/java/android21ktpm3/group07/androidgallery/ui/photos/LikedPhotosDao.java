@@ -13,9 +13,14 @@ public interface LikedPhotosDao {
     @Query("SELECT * FROM liked_photos")
     List<LikedPhoto> getAll();
 
+    @Query("DELETE FROM liked_photos")
+    void deleteAll();
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insert(LikedPhoto likedPhoto);
 
     @Delete
     void delete(LikedPhoto likedPhoto);
+    @Query("DELETE FROM liked_photos WHERE photo_url = :photoUrl")
+    void deleteById(String photoUrl);
 }
