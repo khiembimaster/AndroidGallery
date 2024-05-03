@@ -8,7 +8,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import androidx.annotation.NonNull;
-import androidx.databinding.BindingAdapter;
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ObservableList;
 import androidx.recyclerview.widget.RecyclerView;
@@ -177,6 +176,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
     private void onItemClick(ViewHolder holder, View view, Photo photo) {
         if (selectingModeCallback.isInSelectingMode()) {
             if (photo.isSelected()) {
+                photo.setAnimated(true);
                 photo.setSelected(false);
                 // view.startAnimation(holder.scaleUp);
                 selectingModeCallback.onRemoveItem();
@@ -185,6 +185,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
                     actionCallback.onItemUnselect(photo);
                 }
             } else {
+                photo.setAnimated(true);
                 photo.setSelected(true);
                 // view.startAnimation(holder.scaleDown);
                 selectingModeCallback.onAddItem();
@@ -204,6 +205,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
 
     private void onItemLongClick(ViewHolder holder, View view, Photo photo) {
         if (!selectingModeCallback.isInSelectingMode()) {
+            photo.setAnimated(true);
             photo.setSelected(true);
             // view.startAnimation(holder.scaleDown);
             selectingModeCallback.onAddItem();
@@ -211,22 +213,6 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.ViewHolder> 
             if (actionCallback != null) {
                 actionCallback.onItemSelect(photo);
             }
-        }
-    }
-
-    @BindingAdapter("animate")
-    public static void setAnimation(View view, Boolean isSelected) {
-        if (isSelected) {
-            Animation scaleDown = AnimationUtils.loadAnimation(view.getContext(),
-                    R.anim.scale_down);
-            scaleDown.setFillEnabled(true);
-            scaleDown.setFillAfter(true);
-            view.startAnimation(scaleDown);
-        } else {
-            Animation scaleUp = AnimationUtils.loadAnimation(view.getContext(), R.anim.scale_up);
-            scaleUp.setFillEnabled(true);
-            scaleUp.setFillAfter(true);
-            view.startAnimation(scaleUp);
         }
     }
 

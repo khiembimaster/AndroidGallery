@@ -1,13 +1,11 @@
 package android21ktpm3.group07.androidgallery.ui.photos;
 
-import android.content.ComponentName;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,6 +13,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,31 +35,32 @@ import android21ktpm3.group07.androidgallery.IMenuItemHandler;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.databinding.FragmentPhotosBinding;
 import android21ktpm3.group07.androidgallery.helpers.IntentSenderLauncher;
+import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
-import android21ktpm3.group07.androidgallery.services.PhotoService;
 import android21ktpm3.group07.androidgallery.ui.editor.PhotoEditor;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
 public class PhotosFragment extends Fragment {
     @Inject
-    PhotoRepository photoRepository;
+    protected PhotoRepository photoRepository;
     @Inject
     ExecutorService executor;
 
-    public PhotosViewModel photosViewModel;
-    protected IMenuItemHandler menuItemHandler;
-    protected PhotoService photoService;
+    protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
+    protected Context context;
+    protected PhotosViewModel photosViewModel;
+
+    private IMenuItemHandler menuItemHandler;
+    // private PhotoService photoService;
 
     private final String TAG = "PhotosFragment";
-    protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private IntentSenderLauncher intentSenderLauncher;
     private FragmentPhotosBinding binding;
-    protected Context context;
     private PhotosRecyclerAdapter adapter;
-    protected boolean isBound = false;
-    protected ServiceConnection connection;
+    // private boolean isBound = false;
+    // private ServiceConnection connection;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -80,11 +81,16 @@ public class PhotosFragment extends Fragment {
         });
         menuItemHandler.setOnEditItemClickListener(() -> {
             editPhoto();
+            // movePhotosToAlbum();
             adapter.clearSelectedPhotos();
         });
         menuItemHandler.setOnCreateNewItemClickListener(() -> {
-            photosViewModel.test();
+            // test();
             // photoService.updateSyncingStatus(photosViewModel.getPhotosData());
+        });
+        menuItemHandler.setOnMoveItemClickListener(() -> {
+            movePhotosToAlbum();
+            adapter.clearSelectedPhotos();
         });
     }
 
@@ -93,56 +99,20 @@ public class PhotosFragment extends Fragment {
         super.onCreate(savedInstanceState);
         context = getContext();
 
-        connection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                PhotoService.LocalBinder binder = (PhotoService.LocalBinder) service;
-                photoService = binder.getService();
-
-                photoService.registerPhotoLoadedCallback(photos ->
-                        threadHandler.post(() -> loadPhotos(photos)));
-
-                photoService.registerPhotosDeletedCallback(new PhotoService.PhotosDeletedCallback() {
-                    @Override
-                    public void onSuccess(List<Photo> deletedPhotos) {
-                        threadHandler.post(() -> {
-                            photosViewModel.RemovePhotos(deletedPhotos);
-                        });
-                    }
-
-                    @Override
-                    public void onFailure(List<Photo> deletedPhotos) {
-                        threadHandler.post(() -> {
-                            photosViewModel.RemovePhotos(deletedPhotos);
-                            Snackbar.make(
-                                    binding.getRoot(),
-                                    "Failed to delete photo(s)",
-                                    Snackbar.LENGTH_SHORT
-                            ).show();
-                        });
-                    }
-                });
-
-                isBound = true;
-                Log.d(TAG, "Service connected");
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                isBound = false;
-                Log.d(TAG, "Service disconnected");
-            }
-        };
-        context.bindService(new Intent(context, PhotoService.class), connection,
-                Context.BIND_AUTO_CREATE);
-
         photosViewModel = new ViewModelProvider(this).get(PhotosViewModel.class);
+        setViewModelListener();
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentPhotosBinding.inflate(inflater, container, false);
+
+        binding.swipeRefreshLayout.setOnRefreshListener(() -> {
+            photosViewModel.loadLocalPhotos();
+            binding.swipeRefreshLayout.setRefreshing(false);
+        });
+
         return binding.getRoot();
     }
 
@@ -165,40 +135,42 @@ public class PhotosFragment extends Fragment {
     }
 
     private void initializeRecyclerView() {
-        adapter = new PhotosRecyclerAdapter(
-                context,
-                photosViewModel.getPhotoGroups()
-        );
+        if (adapter == null) {
+            adapter = new PhotosRecyclerAdapter(
+                    context,
+                    photosViewModel.getPhotoGroups()
+            );
 
-        adapter.setChildItemActionCallback(new PhotoAdapter.ItemActionCallback() {
-            @Override
-            public void onItemSelect(Photo photo) {
-                // Toast.makeText(context, "Selected " + photo.getPath(), Toast.LENGTH_SHORT)
-                // .show();
-            }
+            adapter.setChildItemActionCallback(new PhotoAdapter.ItemActionCallback() {
+                @Override
+                public void onItemSelect(Photo photo) {
+                    // Toast.makeText(context, "Selected " + photo.getPath(), Toast.LENGTH_SHORT)
+                    // .show();
+                }
 
-            @Override
-            public void onItemUnselect(Photo photo) {
-                // Toast.makeText(context, "Unselected " + photo.getPath(), Toast.LENGTH_SHORT)
-                // .show();
-            }
+                @Override
+                public void onItemUnselect(Photo photo) {
+                    // Toast.makeText(context, "Unselected " + photo.getPath(), Toast.LENGTH_SHORT)
+                    // .show();
+                }
 
-            @Override
-            public void onItemView(Photo photo) {
-                viewPhoto(photo);
-            }
-        });
-        adapter.setSelectingModeDisplayingCallback(new PhotosRecyclerAdapter.SelectingModeDisplayingCallback() {
-            @Override
-            public void onExit() {
-                hideFragmentOptionItems();
-            }
+                @Override
+                public void onItemView(Photo photo) {
+                    viewPhoto(photo);
+                }
+            });
+            adapter.setSelectingModeDisplayingCallback(new PhotosRecyclerAdapter.SelectingModeDisplayingCallback() {
+                @Override
+                public void onExit() {
+                    hideFragmentOptionItems();
+                }
 
-            @Override
-            public void onEnter() {
-                displayFragmentOptionItems();
-            }
-        });
+                @Override
+                public void onEnter() {
+                    displayFragmentOptionItems();
+                }
+            });
+        }
 
         binding.recyclerView.setAdapter(adapter);
     }
@@ -209,7 +181,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit || itemId == R.id.move) {
                 item.setVisible(true);
                 item.setEnabled(true);
             } else {
@@ -225,7 +197,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit || itemId == R.id.move) {
                 item.setVisible(false);
                 item.setEnabled(false);
             } else {
@@ -298,7 +270,53 @@ public class PhotosFragment extends Fragment {
         }
     }
 
-    private void test() {
+    protected void setViewModelListener() {
+        photosViewModel.listenToReloadCall();
+        photosViewModel.listenToMediaChanges();
+    }
+
+    private void movePhotosToAlbum() {
+        List<Photo> selectedPhotos = adapter.getSelectedPhotos();
+        executor.execute(() -> {
+            List<Album> albums = photoRepository.getAlbums();
+            String[] choices = new String[albums.size()];
+            for (int i = 0; i < albums.size(); i++) {
+                choices[i] = albums.get(i).getName();
+            }
+
+
+            threadHandler.post(() -> {
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                builder
+                        .setTitle("Move photos to album")
+                        .setPositiveButton("Confirm", (dialog, which) -> {
+                            ListView lw = ((AlertDialog) dialog).getListView();
+                            int idx = lw.getCheckedItemPosition();
+
+                            if (idx != -1) {
+                                executor.execute(() -> {
+                                    Log.d(TAG, "Moving photos to " + albums.get(idx).getPath());
+                                    photoRepository.movePhotosToFolder(
+                                            selectedPhotos,
+                                            albums.get(idx).getPath(),
+                                            intentSenderLauncher
+                                    );
+                                });
+                            }
+                        })
+                        .setNegativeButton("Cancel", (dialog, which) -> {
+
+                        })
+                        .setSingleChoiceItems(choices, 0, (dialog, which) -> {
+                            Toast.makeText(context, albums.get(which).getPath(), Toast.LENGTH_SHORT)
+                                    .show();
+                        });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            });
+        });
+
 
     }
 }

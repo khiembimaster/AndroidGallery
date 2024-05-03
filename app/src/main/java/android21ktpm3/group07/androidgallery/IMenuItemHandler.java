@@ -15,6 +15,8 @@ public interface IMenuItemHandler {
 
     void setOnEditItemClickListener(OnMenuItemClickListener listener);
 
+    void setOnMoveItemClickListener(OnMenuItemClickListener listener);
+
     Menu getMenu();
 
     interface OnMenuItemClickListener {

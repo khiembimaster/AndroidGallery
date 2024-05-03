@@ -40,7 +40,7 @@
             app:error="@{@drawable/image_24}"
             app:centerCrop="@{true}"
             app:sizeMultiplier="@{0.5f}"
-            app:animate="@{photo.selected}" />
+            app:animate="@{photo}" />
 
         <ImageView
             android:id="@+id/selectedIcon"

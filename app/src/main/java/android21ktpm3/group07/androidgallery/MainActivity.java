@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements
     private OnMenuItemClickListener onCreateNewItemClickListener;
     private OnMenuItemClickListener onShareItemClickListener;
     private OnMenuItemClickListener onDeleteItemClickListener;
+    private OnMenuItemClickListener onMoveItemClickListener;
     private ActivityMainBinding binding;
     private BottomSheetBehavior bottomSheetBehavior;
 
@@ -119,6 +120,8 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             } else if (item.getItemId() == R.id.edit) {
                 onEditItemClickListener.onClicked();
+            } else if (item.getItemId() == R.id.move) {
+                onMoveItemClickListener.onClicked();
             }
 
             return false;
@@ -196,28 +199,33 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void setOnAccountItemClickListener(OnMenuItemClickListener onAccountItemClickListener) {
-        this.onAccountItemClickListener = onAccountItemClickListener;
+    public void setOnAccountItemClickListener(OnMenuItemClickListener listener) {
+        this.onAccountItemClickListener = listener;
     }
 
     @Override
-    public void setOnCreateNewItemClickListener(OnMenuItemClickListener onCreateNewItemClickListener) {
-        this.onCreateNewItemClickListener = onCreateNewItemClickListener;
+    public void setOnCreateNewItemClickListener(OnMenuItemClickListener listener) {
+        this.onCreateNewItemClickListener = listener;
     }
 
     @Override
-    public void setOnShareItemClickListener(OnMenuItemClickListener onShareItemClickListener) {
-        this.onShareItemClickListener = onShareItemClickListener;
+    public void setOnShareItemClickListener(OnMenuItemClickListener listener) {
+        this.onShareItemClickListener = listener;
     }
 
     @Override
-    public void setOnDeleteItemClickListener(OnMenuItemClickListener onDeleteItemClickListener) {
-        this.onDeleteItemClickListener = onDeleteItemClickListener;
+    public void setOnDeleteItemClickListener(OnMenuItemClickListener listener) {
+        this.onDeleteItemClickListener = listener;
     }
 
     @Override
-    public void setOnEditItemClickListener(OnMenuItemClickListener onEditItemClickListener) {
-        this.onEditItemClickListener = onEditItemClickListener;
+    public void setOnEditItemClickListener(OnMenuItemClickListener listener) {
+        this.onEditItemClickListener = listener;
+    }
+
+    @Override
+    public void setOnMoveItemClickListener(OnMenuItemClickListener listener) {
+        this.onMoveItemClickListener = listener;
     }
 
     @Override
@@ -256,6 +264,10 @@ public class MainActivity extends AppCompatActivity implements
             // minSdkVersion doesn't work so we have to manually do this
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 permissions.remove("android.permission.READ_MEDIA_IMAGES");
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                permissions.add("android.permission.ACCESS_MEDIA_LOCATION");
             }
 
             requestPermissionLauncher.launch(permissions.toArray(new String[0]));
@@ -453,6 +465,5 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-
     }
 }

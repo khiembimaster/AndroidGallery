@@ -2,45 +2,66 @@ package android21ktpm3.group07.androidgallery.ui.library.albums;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
+import androidx.databinding.ObservableArrayList;
+import androidx.databinding.ObservableList;
 import androidx.lifecycle.ViewModel;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
+import javax.inject.Inject;
 
 import android21ktpm3.group07.androidgallery.models.Album;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import dagger.hilt.android.lifecycle.HiltViewModel;
 
+@HiltViewModel
 public class AlbumsViewModel extends ViewModel {
-    private List<Album> albums;
-    private PhotoRepository photoRepository;
-    private Runnable updateTask;
+    private final String TAG = this.getClass().getSimpleName();
+    private final PhotoRepository photoRepository;
+    private final ExecutorService executor;
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
-    // Use shared executor service instead?
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Handler handler = new Handler(Looper.getMainLooper());
+    private final ObservableList<Album> albums = new ObservableArrayList<>();
 
-    // TODO: Switch to DI, create factory
-    public AlbumsViewModel() {}
+    private boolean isLoaded = false;
 
-    public void setPhotoRepository(PhotoRepository photoRepository) {
+    @Inject
+    public AlbumsViewModel(PhotoRepository photoRepository, ExecutorService executor) {
+        Log.d(TAG, "AlbumsViewModel: constructor");
         this.photoRepository = photoRepository;
+        this.executor = executor;
     }
 
-    public List<Album> getAlbums() {
+    public boolean isLoaded() {
+        return isLoaded;
+    }
+
+    public ObservableList<Album> getAlbums() {
         return albums;
     }
 
-    public void setUpdateTask(Runnable updateTask) {
-        this.updateTask = updateTask;
+    public void loadAlbums() {
+        isLoaded = true;
+        executor.execute(() -> {
+            List<Album> result = photoRepository.getAlbums();
+
+            for (Album album : result) {
+                Log.d(TAG, "loadAlbums: " + album.getName() + " " + album.getBucketID());
+            }
+
+            handler.post(() -> {
+                albums.clear();
+                albums.addAll(result);
+            });
+        });
     }
 
-    public void loadAlbums() {
-        executor.execute(() -> {
-            albums = photoRepository.GetAlbums();
-
-            handler.post(updateTask);
-        });
+    @Override
+    protected void onCleared() {
+        Log.d(TAG, "onCleared");
+        super.onCleared();
     }
 }

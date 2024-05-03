@@ -1,22 +1,27 @@
 package android21ktpm3.group07.androidgallery.models;
 
 import androidx.annotation.NonNull;
+import androidx.databinding.BaseObservable;
+import androidx.databinding.Bindable;
 
-import java.io.File;
-import java.util.Objects;
+import android21ktpm3.group07.androidgallery.BR;
+import android21ktpm3.group07.androidgallery.helpers.ISelectable;
 
-public class Album {
+public class Album extends BaseObservable implements ISelectable {
     private String name;
     private String coverPhotoPath;
     private String path;
     private int size = 0;
     private long lastModifiedDate;
-
     private long BucketID;
+    private boolean isSelected;
+    private boolean isAnimated;
 
-    public Album() {}
+    public Album() {
+    }
 
-    public Album(String name, String path, String coverPhotoPath, long lastModifiedDate, long bucketID) {
+    public Album(String name, String path, String coverPhotoPath, long lastModifiedDate,
+                 long bucketID) {
         this.name = name;
         this.path = path;
         this.size = 1;
@@ -29,6 +34,7 @@ public class Album {
         return name;
     }
 
+    @Bindable
     public String getCoverPhotoPath() {
         return coverPhotoPath;
     }
@@ -37,16 +43,33 @@ public class Album {
         return path;
     }
 
+    @Bindable
     public int getSize() {
         return size;
     }
 
+    @Bindable
     public long getLastModifiedDate() {
         return lastModifiedDate;
     }
 
     public long getBucketID() {
         return BucketID;
+    }
+
+    @Override
+    public boolean isAnimated() {
+        return isAnimated;
+    }
+
+    @Override
+    public void setAnimated(boolean animated) {
+        isAnimated = animated;
+    }
+
+    @Bindable
+    public boolean isSelected() {
+        return isSelected;
     }
 
     public void setName(String name) {
@@ -59,14 +82,22 @@ public class Album {
 
     public void setLastModifiedDate(long lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
+        notifyPropertyChanged(BR.lastModifiedDate);
     }
 
     public void setCoverPhotoPath(String coverPhotoPath) {
         this.coverPhotoPath = coverPhotoPath;
+        notifyPropertyChanged(BR.coverPhotoPath);
     }
 
     public void setSize(int size) {
         this.size = size;
+        notifyPropertyChanged(BR.size);
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+        notifyPropertyChanged(BR.selected);
     }
 
     @NonNull

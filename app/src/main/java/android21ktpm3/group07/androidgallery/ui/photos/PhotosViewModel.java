@@ -36,15 +36,20 @@ public class PhotosViewModel extends ViewModel {
 
     private Map<String, PhotoDetails> remotePhotosMap = new HashMap<>();
 
+    // reponse callbacks
+    private PhotoRepository.GetLocalPhotosCallback getAllLocalPhotosCallback;
+    private PhotoRepository.GetLocalPhotosCallback getPhotosInAlbumCallback;
+    private PhotoRepository.GetRemotePhotosCallback getRemotePhotosCallback;
+    private PhotoRepository.MediaChangedCallback mediaChangedCallback;
+    private PhotoRepository.MediaChangedCallback mediaChangedInAlbumCallback;
+
+
     @Inject
     public PhotosViewModel(PhotoRepository photoRepository, ExecutorService executor) {
         this.photoRepository = photoRepository;
         this.executor = executor;
 
-        photoRepository.addGetAllLocalPhotosCallback(photos -> handler.post(() -> {
-            photosData.addAll(photos);
-        }));
-        photoRepository.addGetAllRemotePhotosCallback(new PhotoRepository.GetAllRemotePhotosCallback() {
+        getRemotePhotosCallback = new PhotoRepository.GetRemotePhotosCallback() {
             @Override
             public void onCompleted(List<PhotoDetails> remotePhotos) {
                 handler.post(() -> {
@@ -79,24 +84,10 @@ public class PhotosViewModel extends ViewModel {
                     }
                 });
             }
-        });
-        photoRepository.addMediaChangedCallback(new PhotoRepository.MediaChangedCallback() {
-            @Override
-            public void onAdded(Photo photo) {
-                PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());
-                if (remotePhoto != null) {
-                    photo.setRemoteUrl(remotePhoto.remoteUrl);
-                }
-                
-                AddPhoto(photo);
+        };
 
-            }
-
-            @Override
-            public void onDeleted(Uri uri) {
-                RemovePhoto(uri);
-            }
-        });
+        // enable this by default
+        photoRepository.addGetAllRemotePhotosCallback(getRemotePhotosCallback);
 
         photosData.addOnListChangedCallback(new ObservableList.OnListChangedCallback<ObservableList<Photo>>() {
             @Override
@@ -113,6 +104,13 @@ public class PhotosViewModel extends ViewModel {
                                             int itemCount) {
                 for (int i = positionStart; i < positionStart + itemCount; i++) {
                     Photo photo = sender.get(i);
+
+                    PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());
+                    if (remotePhoto != null) {
+                        photo.setRemoteUrl(remotePhoto.remoteUrl);
+                    } else {
+                        photo.setRemoteUrl(null);
+                    }
 
                     boolean isAdded = false;
                     for (PhotoGroup group : photoGroups) {
@@ -224,22 +222,13 @@ public class PhotosViewModel extends ViewModel {
 
     }
 
+    public void clear() {
+        photosData.clear();
+        photoGroups.clear();
+    }
+
     public void test() {
         Photo photo = photoGroups.get(0).getPhotos().get(0);
-
-        photosData.remove(photo);
-
-        // We have to do this since the callback is called after the photo is removed (not able
-        // to get the removed photo)
-        for (PhotoGroup group : photoGroups) {
-            if ((group.getDate()).isEqual(photo.getRepresentativeDate())) {
-                group.getPhotos().remove(photo);
-                if (group.getPhotos().isEmpty()) {
-                    photoGroups.remove(group);
-                }
-                break;
-            }
-        }
     }
 
     public void test2() {
@@ -249,5 +238,91 @@ public class PhotosViewModel extends ViewModel {
 
     public void loadLocalPhotos() {
         executor.execute(photoRepository::getAllLocalPhotos);
+    }
+
+    public void listenToReloadCall() {
+        if (getAllLocalPhotosCallback != null) throw new IllegalStateException("Already listening");
+
+        getAllLocalPhotosCallback = photos -> handler.post(() -> {
+            clear();
+            photosData.addAll(photos);
+        });
+        photoRepository.addGetAllLocalPhotosCallback(getAllLocalPhotosCallback);
+    }
+
+    // TODO: Specify the albumBucketID in the callback
+    public void listenToReloadInAlbumCall() {
+        if (getPhotosInAlbumCallback != null) throw new IllegalStateException("Already listening");
+
+        getAllLocalPhotosCallback = photos -> handler.post(() -> photosData.addAll(photos));
+        photoRepository.addGetPhotosInAlbumCallback(getAllLocalPhotosCallback);
+    }
+
+    public void listenToMediaChanges() {
+        if (mediaChangedCallback != null) throw new IllegalStateException("Already listening");
+
+        mediaChangedCallback = new PhotoRepository.MediaChangedCallback() {
+            @Override
+            public void onAdded(Photo photo, long albumBucketID) {
+                PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());
+                if (remotePhoto != null) {
+                    photo.setRemoteUrl(remotePhoto.remoteUrl);
+                }
+
+                handler.post(() -> AddPhoto(photo));
+            }
+
+            @Override
+            public void onDeleted(Uri uri) {
+                handler.post(() -> RemovePhoto(uri));
+            }
+        };
+        photoRepository.addMediaChangedCallback(mediaChangedCallback);
+    }
+
+    public void listenToMediaChangesInAlbum(long albumBucketID) {
+        if (mediaChangedInAlbumCallback != null)
+            throw new IllegalStateException("Already listening");
+
+        mediaChangedInAlbumCallback = new PhotoRepository.MediaChangedCallback() {
+            @Override
+            public void onAdded(Photo photo, long bucketID) {
+                if (bucketID != albumBucketID) return;
+
+                PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());
+                if (remotePhoto != null) {
+                    photo.setRemoteUrl(remotePhoto.remoteUrl);
+                }
+
+                handler.post(() -> AddPhoto(photo));
+            }
+
+            @Override
+            public void onDeleted(Uri uri) {
+                handler.post(() -> RemovePhoto(uri));
+            }
+        };
+        photoRepository.addMediaChangedCallback(mediaChangedInAlbumCallback);
+    }
+
+    @Override
+    protected void onCleared() {
+        if (getAllLocalPhotosCallback != null) {
+            photoRepository.removeGetAllLocalPhotosCallback(getAllLocalPhotosCallback);
+        }
+        if (getPhotosInAlbumCallback != null) {
+            photoRepository.removeGetPhotosInAlbumCallback(getPhotosInAlbumCallback);
+        }
+        if (getRemotePhotosCallback != null) {
+            photoRepository.removeGetAllRemotePhotosCallback(getRemotePhotosCallback);
+        }
+        if (mediaChangedCallback != null) {
+            photoRepository.removeMediaChangedCallback(mediaChangedCallback);
+        }
+        if (mediaChangedInAlbumCallback != null) {
+            photoRepository.removeMediaChangedCallback(mediaChangedInAlbumCallback);
+        }
+
+        super.onCleared();
     }
 }

@@ -2,12 +2,16 @@ package android21ktpm3.group07.androidgallery.helpers;
 
 import android.graphics.drawable.Drawable;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
 import androidx.databinding.BindingAdapter;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+
+import android21ktpm3.group07.androidgallery.R;
 
 public class BindingAdapters {
     @BindingAdapter(
@@ -32,5 +36,32 @@ public class BindingAdapters {
     @BindingAdapter("android:visibility")
     public static void setVisibility(View view, Boolean value) {
         view.setVisibility(value ? View.VISIBLE : View.GONE);
+    }
+
+    @BindingAdapter("animate")
+    public static <T extends ISelectable> void setAnimation(View view, T selectable) {
+        if (selectable.isSelected()) {
+            Animation scaleDown = AnimationUtils.loadAnimation(view.getContext(),
+                    R.anim.scale_down);
+            scaleDown.setFillEnabled(true);
+            scaleDown.setFillAfter(true);
+
+            if (!selectable.isAnimated()) {
+                scaleDown.setDuration(0);
+            }
+
+            view.startAnimation(scaleDown);
+        } else {
+            Animation scaleUp = AnimationUtils.loadAnimation(view.getContext(), R.anim.scale_up);
+            scaleUp.setFillEnabled(true);
+            scaleUp.setFillAfter(true);
+
+            if (!selectable.isAnimated()) {
+                scaleUp.setDuration(0);
+            }
+
+            view.startAnimation(scaleUp);
+        }
+        selectable.setAnimated(false);
     }
 }

@@ -84,7 +84,7 @@ public class PhotoService extends Service {
 
     public void getLocalPhotosInAlbum(long albumId) {
         executor.execute(() -> {
-            ArrayList<Photo> photos = photoRepository.getPhotosInAlbum(albumId);
+            ArrayList<Photo> photos = photoRepository.getPhotosInAlbumDirectly(albumId);
             Log.d("PhotoService", "Getting local photos in album: " + photos.size());
 
             if (localPhotosInAlbumLoadedCallback != null)

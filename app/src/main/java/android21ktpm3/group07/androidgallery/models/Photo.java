@@ -12,8 +12,9 @@ import java.util.Objects;
 
 import android21ktpm3.group07.androidgallery.BR;
 import android21ktpm3.group07.androidgallery.helpers.DateHelper;
+import android21ktpm3.group07.androidgallery.helpers.ISelectable;
 
-public class Photo extends BaseObservable implements Parcelable {
+public class Photo extends BaseObservable implements Parcelable, ISelectable {
     private final String path;
     private final String name;
     private final long modifiedDate;
@@ -29,8 +30,9 @@ public class Photo extends BaseObservable implements Parcelable {
 
     private boolean isLoading = false;
     private boolean isSelected = false;
-
     private String remoteUrl = null;
+
+    private boolean isAnimated = false;
 
     public Photo(String path, String name, long modifiedDate, long takenDate, String tags,
                  double fizeSize, Uri contentUri) {
@@ -112,6 +114,7 @@ public class Photo extends BaseObservable implements Parcelable {
     public void setSelected(boolean selected) {
         isSelected = selected;
         notifyPropertyChanged(BR.selected);
+        notifyChange();
     }
 
     @Bindable
@@ -134,6 +137,14 @@ public class Photo extends BaseObservable implements Parcelable {
         if (o == null || getClass() != o.getClass()) return false;
         Photo photo = (Photo) o;
         return Objects.equals(path, photo.path);
+    }
+
+    public boolean isAnimated() {
+        return isAnimated;
+    }
+
+    public void setAnimated(boolean animated) {
+        this.isAnimated = animated;
     }
 
     @Override
