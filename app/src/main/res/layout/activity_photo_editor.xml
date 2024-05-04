@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.editor.PhotoEditor">
+
+    <ja.burhanrashid52.photoeditor.PhotoEditorView
+        android:id="@+id/photoEditorView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/brush_settings"/>
+
+    <Button
+        android:id="@+id/closeEditorButton"
+        android:scaleX="2"
+        android:scaleY="2"
+        style="?attr/materialIconButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/close_fill0_wght700_grad200_opsz48"
+        />
+
+    <RelativeLayout
+        android:fitsSystemWindows="true"
+        android:background="#99000000"
+        android:id="@+id/addTextSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_edit_action"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:layout_centerInParent="true">
+        <Button
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:id="@+id/saveChangesButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            app:icon="@drawable/done_outline_fill0_wght700_grad200_opsz48"
+            android:text="Done"
+            />
+        <EditText
+            android:id="@+id/addTextEditText"
+            android:textSize="36dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:hint="Enter text here"
+            />
+        <Button
+            style="?attr/materialIconButtonFilledTonalStyle"
+            android:id="@+id/openColorDialogButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:layout_alignEnd="@id/saveChangesButton"
+            android:layout_below="@id/saveChangesButton"
+            android:layout_alignParentEnd="true"
+            android:text="Open Color Palette"
+            app:icon="@drawable/palette_fill0_wght700_grad200_opsz48"
+            android:contentDescription="Open Color Palette" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_alignParentStart="true"
+        android:layout_above="@id/bottom_edit_action"
+        android:layout_width="wrap_content"
+        android:id="@+id/brush_settings"
+        android:layout_height="wrap_content">
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/palette_fill0_wght700_grad200_opsz48"
+            android:layout_margin="10dp"
+            android:id="@+id/fab_color_palette"
+            />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/tune_fill0_wght700_grad200_opsz48"
+            android:layout_margin="10dp"
+            android:id="@+id/fab_brush_settings"
+            />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/bottom_edit_action"
+        android:layout_alignBaseline="@id/brush_settings"
+        android:layout_width="wrap_content"
+        android:id="@+id/uno_redo"
+        app:singleSelection="true"
+        android:layout_margin="16dp"
+        android:layout_height="wrap_content">
+
+        <Button
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            app:icon="@drawable/undo_fill0_wght700_grad200_opsz48"
+            android:id="@+id/btn_undo"
+            />
+        <Button
+            android:id="@+id/saveImageButton"
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/save_fill0_wght700_grad200_opsz48"
+            />
+        <Button
+            style="@style/Widget.App.Button.OutlinedButton.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/redo_fill0_wght700_grad200_opsz48"
+            android:id="@+id/btn_redo"
+            />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:layout_alignParentBottom="true"
+        android:id="@+id/bottom_edit_action"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:menu="@menu/bottom_edit_action_menu" />
+
+</RelativeLayout>
