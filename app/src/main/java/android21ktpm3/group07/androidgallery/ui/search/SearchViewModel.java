@@ -1,21 +1,14 @@
 package android21ktpm3.group07.androidgallery.ui.search;
 
-import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class SearchViewModel extends ViewModel {
@@ -32,34 +25,21 @@ public class SearchViewModel extends ViewModel {
         mSearchText = new MutableLiveData<>();
         searchResults = new MutableLiveData<>();
         photoResults = new MutableLiveData<>();
-        photoResults.setValue(new ArrayList<Photo>(){
-            {
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-                add(new Photo("https://firebasestorage.googleapis.com/v0/b/android-gallery-21ktpm3-07.appspot.com/o/user%2F5hGSxNz60yYfbsMw7ONwQHDjLQn2%2F20200709_130844.jpg?alt=media&token=0d3b1e11-fa71-423a-93e4-572f3fa84b1b"
-                        , "name", new Date(), new ArrayList<>(), 0.0));
-            }
-
-        });
+        photoResults.setValue(new ArrayList<Photo>());
     }
 
     public MutableLiveData<String> getText() {
         return mText;
     }
+
     public MutableLiveData<List<String>> getSearchResults() {
         return searchResults;
     }
+
     public MutableLiveData<String> getSearchText() {
         return mSearchText;
     }
+
     public MutableLiveData<List<Photo>> getPhotoResults() {
         return photoResults;
     }
@@ -67,6 +47,7 @@ public class SearchViewModel extends ViewModel {
     public void updateSearchText(String query) {
         mSearchText.setValue(query);
     }
+
     public void updateSearchResults(String query, List<String> allItems) {
         if (query.isEmpty()) {
             return;
