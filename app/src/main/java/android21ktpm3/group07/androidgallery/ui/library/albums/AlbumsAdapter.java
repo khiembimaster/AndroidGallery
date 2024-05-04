@@ -73,7 +73,7 @@ public class AlbumsAdapter extends RecyclerView.Adapter<AlbumsAdapter.ViewHolder
         Album album = albums.get(position);
 
         holder.bind(album);
-        
+
         holder.binding.imageView.setOnClickListener(v -> onItemClick(album));
     }
 
@@ -84,7 +84,14 @@ public class AlbumsAdapter extends RecyclerView.Adapter<AlbumsAdapter.ViewHolder
 
     private void onItemClick(Album album) {
         Intent intent = new Intent(context, AlbumActivity.class);
-        intent.putExtra("albumBucketID", album.getBucketID());
+        if (album.getBucketID() != null) {
+            intent.putExtra("albumBucketID", album.getBucketID());
+            intent.putExtra("isFavouriteAlbum", false);
+        } else {
+            intent.putExtra("isFavouriteAlbum", true);
+        }
+
+
         context.startActivity(intent);
     }
 

@@ -2,6 +2,7 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -46,7 +47,7 @@ public class PhotosFragment extends Fragment {
     @Inject
     protected PhotoRepository photoRepository;
     @Inject
-    ExecutorService executor;
+    protected ExecutorService executor;
 
     protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     protected Context context;
@@ -122,6 +123,11 @@ public class PhotosFragment extends Fragment {
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(context);
         binding.recyclerView.setLayoutManager(layoutManager);
+
+        // Initialize the RecyclerView adapter
+        initializeRecyclerView();
+
+        // Set the adapter to the RecyclerView
         binding.recyclerView.setAdapter(adapter);
 
         initializeRecyclerView();
@@ -228,7 +234,8 @@ public class PhotosFragment extends Fragment {
             photoRepository.deleteLocalPhotos(
                     selectedPhotos,
                     intentSenderLauncher,
-                    null
+                    null,
+                    executor
             );
         });
     }
@@ -258,6 +265,11 @@ public class PhotosFragment extends Fragment {
         intent.putExtra("photo_tags", photo.getTags());
         intent.putExtra("photo_date", photo.getModifiedDate());
         intent.putExtra("photo_size", photo.getFileSize());
+        intent.putExtra("photo_name", photo.getName());
+        intent.putExtra("photo_takenDate", photo.getTakenDate());
+        intent.putExtra("photo_isFavourite", photo.getIsFavourite());
+        // intent.putExtra("photo_id", photo.getId());
+
 
         startActivity(intent);
     }
@@ -278,7 +290,7 @@ public class PhotosFragment extends Fragment {
     private void movePhotosToAlbum() {
         List<Photo> selectedPhotos = adapter.getSelectedPhotos();
         executor.execute(() -> {
-            List<Album> albums = photoRepository.getAlbums();
+            List<Album> albums = photoRepository.getAlbums(false);
             String[] choices = new String[albums.size()];
             for (int i = 0; i < albums.size(); i++) {
                 choices[i] = albums.get(i).getName();
@@ -307,9 +319,20 @@ public class PhotosFragment extends Fragment {
                         .setNegativeButton("Cancel", (dialog, which) -> {
 
                         })
-                        .setSingleChoiceItems(choices, 0, (dialog, which) -> {
-                            Toast.makeText(context, albums.get(which).getPath(), Toast.LENGTH_SHORT)
-                                    .show();
+                        .setSingleChoiceItems(choices, 0, new DialogInterface.OnClickListener() {
+                            Toast curToast = null;
+
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (curToast != null) {
+                                    curToast.cancel();
+                                }
+
+                                curToast = Toast.makeText(context, albums.get(which).getPath(),
+                                        Toast.LENGTH_SHORT);
+                                curToast.show();
+
+                            }
                         });
 
                 AlertDialog dialog = builder.create();

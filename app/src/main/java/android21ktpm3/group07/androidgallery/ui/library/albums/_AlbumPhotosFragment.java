@@ -11,16 +11,22 @@ import android21ktpm3.group07.androidgallery.ui.photos.PhotosFragment;
 
 public class _AlbumPhotosFragment extends PhotosFragment {
     private final String TAG = this.getClass().getSimpleName();
-    private long albumBucketId;
+    private Long albumBucketId;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        albumBucketId = getActivity().getIntent().getLongExtra("albumBucketID", -1);
-        
+        if (getActivity().getIntent().getBooleanExtra("isFavouriteAlbum", false)) {
+            albumBucketId = null;
+        } else {
+            albumBucketId = getActivity().getIntent().getLongExtra("albumBucketID", 0);
+        }
+
         super.onCreate(savedInstanceState);
 
         Log.d(TAG, "onCreate: " + albumBucketId);
-        photoRepository.getPhotosInAlbum(albumBucketId);
+        executor.execute(() -> {
+            photoRepository.getPhotosInAlbum(albumBucketId);
+        });
     }
 
     @Override

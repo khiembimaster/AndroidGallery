@@ -24,7 +24,7 @@
             android:foreground="?selectableItemBackground"
             app:animate="@{album}"
             app:centerCrop="@{true}"
-            app:error="@{@drawable/image_24}"
+            app:error="@{album.bucketID == null ? @drawable/baseline_favorite_24 : @drawable/image_24}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="H,1:1"
             app:layout_constraintEnd_toEndOf="parent"

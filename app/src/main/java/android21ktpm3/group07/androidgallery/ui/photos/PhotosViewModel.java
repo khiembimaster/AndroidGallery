@@ -263,7 +263,7 @@ public class PhotosViewModel extends ViewModel {
 
         mediaChangedCallback = new PhotoRepository.MediaChangedCallback() {
             @Override
-            public void onAdded(Photo photo, long albumBucketID) {
+            public void onAdded(Photo photo, Long albumBucketID) {
                 PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());
                 if (remotePhoto != null) {
                     photo.setRemoteUrl(remotePhoto.remoteUrl);
@@ -280,13 +280,13 @@ public class PhotosViewModel extends ViewModel {
         photoRepository.addMediaChangedCallback(mediaChangedCallback);
     }
 
-    public void listenToMediaChangesInAlbum(long albumBucketID) {
+    public void listenToMediaChangesInAlbum(Long albumBucketID) {
         if (mediaChangedInAlbumCallback != null)
             throw new IllegalStateException("Already listening");
 
         mediaChangedInAlbumCallback = new PhotoRepository.MediaChangedCallback() {
             @Override
-            public void onAdded(Photo photo, long bucketID) {
+            public void onAdded(Photo photo, Long bucketID) {
                 if (bucketID != albumBucketID) return;
 
                 PhotoDetails remotePhoto = remotePhotosMap.get(photo.getPath());

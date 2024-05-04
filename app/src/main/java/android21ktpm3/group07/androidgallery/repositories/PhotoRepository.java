@@ -18,6 +18,7 @@ import android.util.Log;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.room.Room;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
@@ -40,7 +41,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -53,6 +56,8 @@ import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.models.remote.ImageDocument;
 import android21ktpm3.group07.androidgallery.models.remote.PhotoDetails;
 import android21ktpm3.group07.androidgallery.services.JobSchedulerService;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhoto;
+import android21ktpm3.group07.androidgallery.ui.photos.LikedPhotosDatabase;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 
 /**
@@ -62,6 +67,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
 public class PhotoRepository {
     private final String TAG = this.getClass().getSimpleName();
     private final Context context;
+    private long favouriteID;
+    private LikedPhotosDatabase database;
+
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final FirebaseStorage storage = FirebaseStorage.getInstance();
@@ -84,6 +92,11 @@ public class PhotoRepository {
                 mediaStoreChangedBroadcastReceiver,
                 new IntentFilter(JobSchedulerService.ACTION_MEDIA_STORE_CHANGED)
         );
+
+        database = Room.databaseBuilder(context, LikedPhotosDatabase.class, "liked_photos.db")
+                // .allowMainThreadQueries() // Only for demonstration. In a real app, perform
+                // database operations in background threads.
+                .build();
     }
 
     public void destruct() {
@@ -122,7 +135,7 @@ public class PhotoRepository {
         mediaChangedCallbacks.remove(callback);
     }
 
-    public ArrayList<Album> getAlbums() {
+    public ArrayList<Album> getAlbums(boolean includeFavourites) {
         Uri collection;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
@@ -137,6 +150,11 @@ public class PhotoRepository {
         };
 
         HashMap<String, Album> albumsMap = new LinkedHashMap<>();
+
+        Set<String> favouritePaths = database.likedPhotosDao().getAll().stream()
+                .map(LikedPhoto::getPhotoUrl)
+                .collect(Collectors.toSet());
+        int count = 0;
 
         try (
                 Cursor cursor = context.getContentResolver().query(
@@ -173,15 +191,40 @@ public class PhotoRepository {
                                 BucketID
                         ));
                     }
+
+                    if (includeFavourites) {
+                        // Hacky solution to remove invalid favourites from the list
+                        if (favouritePaths.contains(filePath)) {
+                            ++count;
+                        }
+                    }
+
                 } while (cursor.moveToNext());
             }
         } catch (Exception e) {
             Log.e("PhotoRepository", e.toString());
         }
 
-        return albumsMap.values().stream()
+        ArrayList<Album> result = albumsMap.values().stream()
                 .sorted(Comparator.comparingLong(Album::getLastModifiedDate).reversed())
                 .collect(Collectors.toCollection(ArrayList::new));
+
+        if (!includeFavourites) {
+            return result;
+        }
+
+        int favouriteAlbumSize = database.likedPhotosDao().size();
+        if (favouriteAlbumSize > 0) {
+            Album favouriteAlbum = new Album("Favourites", null, null, 0, null);
+            favouriteAlbum.setSize(count);
+            result.add(0, favouriteAlbum);
+        }
+
+        return result;
+    }
+
+    public ArrayList<Album> getAlbums() {
+        return getAlbums(true);
     }
 
     private ArrayList<Photo> getLocalPhotos(Long albumBucketID) {
@@ -199,7 +242,8 @@ public class PhotoRepository {
                 MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.DATE_TAKEN,
                 MediaStore.Images.Media.SIZE,
-                MediaStore.Images.Media.DESCRIPTION
+                MediaStore.Images.Media.DESCRIPTION,
+                //    MediaStore.Images.Media.IS_FAVORITE // check in data from room instead
         };
 
         String selection = null;
@@ -227,6 +271,9 @@ public class PhotoRepository {
                 int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
                 int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
 
+                //     int favouriteIdx = cursor.getColumnIndex(MediaStore.Images.Media
+                //     .IS_FAVORITE);
+
                 do {
                     long id = cursor.getLong(idColumnIdx);
                     String path = cursor.getString(PathColumnIdx);
@@ -235,11 +282,12 @@ public class PhotoRepository {
                     long takenDate = cursor.getLong(TakenDateColumnIdx);
                     String tags = cursor.getString(tagsColumnIdx);
                     double fileSize = cursor.getDouble(fileSizeColumnIdx);
+                    // String isFavourite = cursor.getString(favouriteIdx);
 
                     Uri contentUri = ContentUris.withAppendedId(collection, id);
 
                     photos.add(new Photo(
-                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri
+                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri, false
                     ));
                 } while (cursor.moveToNext());
             }
@@ -269,14 +317,29 @@ public class PhotoRepository {
         return getLocalPhotos(null);
     }
 
-    public void getPhotosInAlbum(long albumBucketID) {
-        ArrayList<Photo> result = getLocalPhotos(albumBucketID);
+    public void getPhotosInAlbum(Long albumBucketID) {
+        ArrayList<Photo> result = getPhotosInAlbumDirectly(albumBucketID);
+
         for (GetLocalPhotosCallback callback : getPhotosInAlbumCallbacks) {
             callback.onCompleted(result);
         }
     }
 
-    public ArrayList<Photo> getPhotosInAlbumDirectly(long albumBucketID) {
+    public ArrayList<Photo> getPhotosInAlbumDirectly(Long albumBucketID) {
+        if (albumBucketID == null) {
+            ArrayList<Photo> photos = new ArrayList<>();
+
+            List<LikedPhoto> likedPhotos = database.likedPhotosDao().getAll();
+            for (LikedPhoto photo : likedPhotos) {
+                Photo p = getPhotoFromPath(photo.getPhotoUrl(), null);
+                if (p != null) {
+                    photos.add(p);
+                }
+            }
+
+            return photos;
+        }
+
         return getLocalPhotos(albumBucketID);
     }
 
@@ -384,7 +447,7 @@ public class PhotoRepository {
      */
     @SuppressLint("NewApi")
     public void deleteLocalPhotos(List<Photo> photos, IntentSenderLauncher launcher,
-                                  DeletePhotosCallback callback) {
+                                  DeletePhotosCallback callback, ExecutorService executor) {
         // createDeleteRequest is only available on Android R and above but we can use in on Q
         // since we opt in to the new storage model by setting
         // android:requestLegacyExternalStorage to false in the manifest
@@ -401,6 +464,12 @@ public class PhotoRepository {
             launcher.launch(request, new IntentSenderLauncher.IntentSenderResultCallback() {
                 @Override
                 public void onOK() {
+                    executor.execute(() -> {
+                        photos.forEach(photo -> {
+                            database.likedPhotosDao().deleteById(photo.getPath());
+                        });
+                    });
+
                     if (callback != null) {
                         callback.onSucceed();
                     }
@@ -423,6 +492,7 @@ public class PhotoRepository {
                 );
 
                 if (result != 0) {
+                    database.likedPhotosDao().deleteById(photo.getPath());
                     deletedPhotos.add(photo);
                 }
             }
@@ -585,6 +655,74 @@ public class PhotoRepository {
         return null;
     }
 
+    @Nullable
+    private Photo getPhotoFromPath(String path, Set<String> favouritePaths) {
+        Uri collection;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        } else {
+            collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        }
+
+        String[] projection = new String[]{
+                MediaStore.Images.Media._ID,
+                MediaStore.Images.Media.DATA,
+                MediaStore.Images.Media.DISPLAY_NAME,
+                MediaStore.Images.Media.DATE_MODIFIED,
+                MediaStore.Images.Media.DATE_TAKEN,
+                MediaStore.Images.Media.SIZE,
+                MediaStore.Images.Media.DESCRIPTION,
+                MediaStore.Images.Media.BUCKET_ID
+        };
+
+        String selection = MediaStore.Images.Media.DATA + " = ?";
+        String[] selectionArgs = new String[]{path};
+
+        try (Cursor cursor = context.getContentResolver().query(
+                collection,
+                projection,
+                selection,
+                selectionArgs,
+                null)
+        ) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media._ID);
+                int NameColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
+                int ModifiedDateColumnIdx =
+                        cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+                int TakenDateColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
+                int fileSizeColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
+                int tagsColumnIdx = cursor.getColumnIndex(MediaStore.Images.Media.DESCRIPTION);
+
+
+                long id = cursor.getLong(idColumnIdx);
+                String name = cursor.getString(NameColumnIdx);
+                long modifiedDate = cursor.getLong(ModifiedDateColumnIdx) * 1000; //  s to ms
+                long takenDate = cursor.getLong(TakenDateColumnIdx);
+                String tags = cursor.getString(tagsColumnIdx);
+                double fileSize = cursor.getDouble(fileSizeColumnIdx);
+                // String isFavourite = cursor.getString(favouriteIdx);
+
+                Uri contentUri = ContentUris.withAppendedId(collection, id);
+
+                if (favouritePaths == null) {
+                    return new Photo(
+                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri, true
+                    );
+                } else {
+                    return new Photo(
+                            path, name, modifiedDate, takenDate, tags, fileSize, contentUri,
+                            favouritePaths.contains(path)
+                    );
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to query MediaStore", e);
+        }
+
+        return null;
+    }
+
     public interface GetLocalPhotosCallback {
         void onCompleted(List<Photo> photos);
     }
@@ -596,7 +734,7 @@ public class PhotoRepository {
     }
 
     public interface MediaChangedCallback {
-        void onAdded(Photo photo, long AlbumBucketID);
+        void onAdded(Photo photo, Long AlbumBucketID);
 
         void onDeleted(Uri uri);
     }
@@ -670,7 +808,8 @@ public class PhotoRepository {
                         for (MediaChangedCallback callback : mediaChangedCallbacks) {
                             callback.onAdded(
                                     new Photo(
-                                            path, name, modifiedDate, takenDate, tags, fileSize, uri
+                                            path, name, modifiedDate, takenDate, tags, fileSize,
+                                            uri, false
                                     ),
                                     bucketId
                             );

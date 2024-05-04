@@ -5,6 +5,7 @@ import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
 import android21ktpm3.group07.androidgallery.BR;
+import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.helpers.ISelectable;
 
 public class Album extends BaseObservable implements ISelectable {
@@ -13,15 +14,17 @@ public class Album extends BaseObservable implements ISelectable {
     private String path;
     private int size = 0;
     private long lastModifiedDate;
-    private long BucketID;
+    private Long BucketID;
     private boolean isSelected;
     private boolean isAnimated;
+
+    public static final int favouriteDrawable = R.drawable.baseline_favorite_24;
 
     public Album() {
     }
 
     public Album(String name, String path, String coverPhotoPath, long lastModifiedDate,
-                 long bucketID) {
+                 Long bucketID) {
         this.name = name;
         this.path = path;
         this.size = 1;
@@ -53,7 +56,7 @@ public class Album extends BaseObservable implements ISelectable {
         return lastModifiedDate;
     }
 
-    public long getBucketID() {
+    public Long getBucketID() {
         return BucketID;
     }
 

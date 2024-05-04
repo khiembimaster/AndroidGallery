@@ -13,7 +13,6 @@ import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
 public class AlbumActivity extends AppCompatActivity {
-
     private AppBarConfiguration appBarConfiguration;
     private ActivityAlbumBinding binding;
 

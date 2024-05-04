@@ -10,6 +10,7 @@ public class Photo {
     private final Date modifiedDate;
     private final List<String> tags;
     private final double fileSize;
+
     public Photo(String url, String name, Date modifiedDate, List<String> tags, double fileSize) {
         this.url = url;
         this.name = name;
@@ -17,6 +18,7 @@ public class Photo {
         this.tags = tags;
         this.fileSize = fileSize;
     }
+
     public String getUrl() {
         return url;
     }

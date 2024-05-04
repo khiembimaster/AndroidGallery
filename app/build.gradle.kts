@@ -46,6 +46,9 @@ dependencies {
     implementation("androidx.savedstate:savedstate:1.2.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0")
 
+    // TODO: what is this?
+    implementation("com.squareup.picasso:picasso:2.71828")
+
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -92,5 +95,14 @@ dependencies {
     // Color Picker
     implementation("com.github.mrudultora:Colorpicker:1.2.0")
 
+    // swipe-to-refresh layout
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
+    // Storing data
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+//    implementation ("io.reactivex.rxjava3:rxjava:3.1.8")
+//    implementation("androidx.datastore:datastore-preferences-rxjava3:1.1.1")
+    implementation("androidx.room:room-common:2.6.1")
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
 }
