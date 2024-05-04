@@ -202,7 +202,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.move) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.move || itemId == R.id.edit) {
                 item.setVisible(false);
                 item.setEnabled(false);
             } else {

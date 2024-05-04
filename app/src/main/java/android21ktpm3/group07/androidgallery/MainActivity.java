@@ -1,5 +1,6 @@
 package android21ktpm3.group07.androidgallery;
 
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -7,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 
@@ -110,7 +112,16 @@ public class MainActivity extends AppCompatActivity implements
                 toggleBottomSheet();
                 return true;
             } else if (item.getItemId() == R.id.create_new) {
-                onCreateNewItemClickListener.onClicked();
+                try {
+                    try {
+                        Intent intent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
+                        startActivity(intent);
+                    } catch (ActivityNotFoundException e) {
+                        // display error state to the user
+                    }
+                } catch (ActivityNotFoundException e) {
+                    // display error state to the user
+                }
                 return true;
             } else if (item.getItemId() == R.id.share) {
                 onShareItemClickListener.onClicked();
