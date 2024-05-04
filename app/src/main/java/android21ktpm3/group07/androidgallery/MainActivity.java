@@ -120,8 +120,10 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             } else if (item.getItemId() == R.id.edit) {
                 onEditItemClickListener.onClicked();
+                return true;
             } else if (item.getItemId() == R.id.move) {
                 onMoveItemClickListener.onClicked();
+                return true;
             }
 
             return false;
@@ -231,6 +233,14 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public Menu getMenu() {
         return binding.materialToolbar.getMenu();
+    }
+
+    @Override
+    public void hideToolbar() {
+    }
+
+    @Override
+    public void showToolbar() {
     }
 
     //  TODO: Move to application class ?

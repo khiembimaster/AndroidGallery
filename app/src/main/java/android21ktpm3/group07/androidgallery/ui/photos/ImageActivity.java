@@ -3,7 +3,9 @@ package android21ktpm3.group07.androidgallery.ui.photos;
 import android.Manifest;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.FrameLayout;
@@ -22,6 +24,7 @@ import java.util.List;
 import android21ktpm3.group07.androidgallery.R;
 import android21ktpm3.group07.androidgallery.models.Photo;
 import android21ktpm3.group07.androidgallery.repositories.PhotoRepository;
+import android21ktpm3.group07.androidgallery.ui.editor.PhotoEditor;
 
 
 public class ImageActivity extends AppCompatActivity {
@@ -33,6 +36,7 @@ public class ImageActivity extends AppCompatActivity {
 
     ImageView display;
 
+    ImageButton edit;
     ImageButton share;
     ImageButton like;
     ImageButton detail;
@@ -45,6 +49,7 @@ public class ImageActivity extends AppCompatActivity {
     double photoSize;
     String isFavourite;
     String takenDate;
+    Uri contentUri;
     Photo photo;
     long id;
     private LikedPhotosDatabase database;
@@ -83,6 +88,7 @@ public class ImageActivity extends AppCompatActivity {
         takenDate = getIntent().getStringExtra("photo_takenDate");
         isFavourite = getIntent().getStringExtra("photo_isFavourite");
         id = getIntent().getLongExtra("photo_id", 0);
+        contentUri = Uri.parse(getIntent().getStringExtra("photo_contentUri"));
 
         if (photoPath != null) {
             Glide.with(this)
@@ -91,6 +97,7 @@ public class ImageActivity extends AppCompatActivity {
         }
 
 
+        edit = findViewById(R.id.btnEdit);
         share = findViewById(R.id.btnShare);
         delete = findViewById(R.id.btnDelete);
         detail = findViewById(R.id.btnDetail);
@@ -118,8 +125,23 @@ public class ImageActivity extends AppCompatActivity {
             like.setImageResource(R.drawable.heart);
         }
 
+        edit.setOnClickListener(view -> {
+            Intent intent = new Intent(this, PhotoEditor.class);
+            intent.setData(Uri.parse(photoPath));
+            try {
+                startActivity(intent);
+            } catch (Exception e) {
+                Log.e("ImageActivity", "Error starting editor activity");
+            }
+        });
+
         share.setOnClickListener(view -> {
-            // Handle share button click
+
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+            shareIntent.setType("image/*");
+
+            startActivity(Intent.createChooser(shareIntent, "Share images to..."));
         });
 
         delete.setOnClickListener(view -> {

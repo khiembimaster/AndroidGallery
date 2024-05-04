@@ -19,6 +19,10 @@ public interface IMenuItemHandler {
 
     Menu getMenu();
 
+    void hideToolbar();
+
+    void showToolbar();
+
     interface OnMenuItemClickListener {
         void onClicked();
     }

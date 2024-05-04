@@ -52,8 +52,7 @@ public class PhotosFragment extends Fragment {
     protected final Handler threadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     protected Context context;
     protected PhotosViewModel photosViewModel;
-
-    private IMenuItemHandler menuItemHandler;
+    protected IMenuItemHandler menuItemHandler;
     // private PhotoService photoService;
 
     private final String TAG = "PhotosFragment";
@@ -187,7 +186,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit || itemId == R.id.move) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.move) {
                 item.setVisible(true);
                 item.setEnabled(true);
             } else {
@@ -203,7 +202,7 @@ public class PhotosFragment extends Fragment {
             MenuItem item = menu.getItem(i);
             int itemId = item.getItemId();
 
-            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.edit || itemId == R.id.move) {
+            if (itemId == R.id.share || itemId == R.id.delete || itemId == R.id.move) {
                 item.setVisible(false);
                 item.setEnabled(false);
             } else {
@@ -268,6 +267,7 @@ public class PhotosFragment extends Fragment {
         intent.putExtra("photo_name", photo.getName());
         intent.putExtra("photo_takenDate", photo.getTakenDate());
         intent.putExtra("photo_isFavourite", photo.getIsFavourite());
+        intent.putExtra("photo_contentUri", photo.getContentUri().toString());
         // intent.putExtra("photo_id", photo.getId());
 
 

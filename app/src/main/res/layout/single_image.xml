@@ -12,8 +12,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/footer"
-        />
+        app:layout_constraintBottom_toTopOf="@id/footer" />
 
     <LinearLayout
         android:id="@+id/footer"
@@ -26,6 +25,16 @@
         >
 
         <ImageButton
+            android:id="@+id/btnEdit"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:src="@drawable/edit_fill0_wght400_grad0_opsz24"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:background="@color/design_default_color_surface" />
+
+        <ImageButton
             android:id="@+id/btnShare"
             android:layout_width="0dp"
             android:layout_height="50dp"
@@ -33,8 +42,7 @@
             android:src="@drawable/share"
             android:adjustViewBounds="true"
             android:scaleType="fitCenter"
-            android:background="@color/design_default_color_surface"
-            />
+            android:background="@color/design_default_color_surface" />
 
         <ImageButton
             android:id="@+id/btnLike"
@@ -44,8 +52,7 @@
             android:src="@drawable/like"
             android:adjustViewBounds="true"
             android:scaleType="fitCenter"
-            android:background="@color/design_default_color_surface"
-            />
+            android:background="@color/design_default_color_surface" />
 
         <ImageButton
             android:id="@+id/btnDetail"
@@ -55,8 +62,7 @@
             android:src="@drawable/detail"
             android:adjustViewBounds="true"
             android:scaleType="fitCenter"
-            android:background="@color/design_default_color_surface"
-            />
+            android:background="@color/design_default_color_surface" />
 
         <ImageButton
             android:id="@+id/btnDelete"
@@ -66,7 +72,6 @@
             android:src="@drawable/delete"
             android:adjustViewBounds="true"
             android:scaleType="fitCenter"
-            android:background="@color/design_default_color_surface"
-            />
+            android:background="@color/design_default_color_surface" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
